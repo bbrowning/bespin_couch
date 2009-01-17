@@ -1,31 +1,3 @@
-//  ***** BEGIN LICENSE BLOCK *****
-// Version: MPL 1.1
-// 
-// The contents of this file are subject to the Mozilla Public License  
-// Version
-// 1.1 (the "License"); you may not use this file except in compliance  
-// with
-// the License. You may obtain a copy of the License at
-// http://www.mozilla.org/MPL/
-// 
-// Software distributed under the License is distributed on an "AS IS"  
-// basis,
-// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the  
-// License
-// for the specific language governing rights and limitations under the
-// License.
-// 
-// The Original Code is Bespin.
-// 
-// The Initial Developer of the Original Code is Mozilla.
-// Portions created by the Initial Developer are Copyright (C) 2009
-// the Initial Developer. All Rights Reserved.
-// 
-// Contributor(s):
-// 
-// ***** END LICENSE BLOCK *****
-// 
-
       // - Global Constants
       var COMMAND_LINE_HEIGHT = 95;
 
@@ -43,7 +15,7 @@
 
       var _showCollabHotCounter = 0;
 
-      Element.observe(window, 'load', function() {	
+      Element.observe(window, 'load', function() {    
           _editor      = new Editor($('editor'));
           _editSession = new EditSession(_editor);
           _server      = new Server();
@@ -53,12 +25,11 @@
 
           _editor.setFocus(true);
 
-		  document.observe("bespin:settings:loaded", function(event) {
-			_settings.loadSession();  // load the last file or what is passed in
-          	doResize();
-          	new StatusChecker().start(); // mock statuses
-		  });
-		
+          document.observe("bespin:settings:loaded", function(event) {
+            _settings.loadSession();  // load the last file or what is passed in
+              doResize();
+          });
+
           var collab = $("collaboration");
           Element.observe(collab, 'click', function() {
               _showCollab = !_showCollab;
@@ -105,7 +76,7 @@
               _editor.ui.actions.redo();
           });
 
-	      Element.observe(window, 'resize', doResize);
+          Element.observe(window, 'resize', doResize);
       });
 
       function recalcLayout() {

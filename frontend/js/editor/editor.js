@@ -1,31 +1,3 @@
-//  ***** BEGIN LICENSE BLOCK *****
-// Version: MPL 1.1
-// 
-// The contents of this file are subject to the Mozilla Public License  
-// Version
-// 1.1 (the "License"); you may not use this file except in compliance  
-// with
-// the License. You may obtain a copy of the License at
-// http://www.mozilla.org/MPL/
-// 
-// Software distributed under the License is distributed on an "AS IS"  
-// basis,
-// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the  
-// License
-// for the specific language governing rights and limitations under the
-// License.
-// 
-// The Original Code is Bespin.
-// 
-// The Initial Developer of the Original Code is Mozilla.
-// Portions created by the Initial Developer are Copyright (C) 2009
-// the Initial Developer. All Rights Reserved.
-// 
-// Contributor(s):
-// 
-// ***** END LICENSE BLOCK *****
-// 
-
 // some state mgmt. for scrollbars; not a true component
 var Scrollbar = Class.create({
     HORIZONTAL: "horizontal",
@@ -205,9 +177,9 @@ var DefaultEditorKeyListener = Class.create({
 
     bindKey: function(keyCode, metaKey, ctrlKey, altKey, shiftKey, action) {
         this.defaultKeyMap[[keyCode, metaKey, ctrlKey, altKey, shiftKey]] = 
-			(typeof action == "string") ? 
-				function() { document.fire(action); } : 
-				action.bind(this.actions);
+            (typeof action == "string") ?
+                function() { document.fire(action); } :
+                action.bind(this.actions);
     },
 
     bindKeyString: function(modifiers, keyCode, action) {
@@ -236,10 +208,10 @@ var DefaultEditorKeyListener = Class.create({
 
         var action = this.keyMap[[e.keyCode, e.metaKey, e.ctrlKey, e.altKey, e.shiftKey]];
 
-		var hasAction = false;
-		
+        var hasAction = false;
+
         if (typeof action == "function") {
-			hasAction = true;
+            hasAction = true;
             action(args);
         }
 
@@ -261,7 +233,7 @@ var DefaultEditorKeyListener = Class.create({
         var args = { event: e, pos: EditorUtils.copyPos(self.editor.cursorPosition) }
         var actions = self.editor.ui.actions;
 
-		// Only allow ascii through
+        // Only allow ascii through
         if ((e.charCode >= 32) && (e.charCode <= 126)) {
           args.newchar = String.fromCharCode(e.charCode);
           actions.insertCharacter(args);
@@ -606,7 +578,7 @@ var EditorUI = Class.create({
         listener.bindKeyString("APPLE", Key.ARROW_UP, this.actions.moveToFileTop);
         listener.bindKeyString("APPLE", Key.ARROW_DOWN, this.actions.moveToFileBottom);
 
-		listener.bindKeyString("CTRL SHIFT", Key.N, "bespin:editor:newfile");
+        listener.bindKeyString("CTRL SHIFT", Key.N, "bespin:editor:newfile");
     },
 
     getWidth: function() {
@@ -627,15 +599,15 @@ var EditorUI = Class.create({
         return this.editor.canvas.parentNode.offsetLeft;
     },
 
-	getCharWidth: function(ctx) {
-		if (ctx.measureText) {
-			return ctx.measureText("M").width;
-		} else if (ctx.mozMeasureText) {
-			return ctx.mozMeasureText("M");
-		} else {
-			return this.FALLBACK_CHARACTER_WIDTH;
-		}
-	},
+    getCharWidth: function(ctx) {
+        if (ctx.measureText) {
+            return ctx.measureText("M").width;
+        } else if (ctx.mozMeasureText) {
+            return ctx.mozMeasureText("M");
+        } else {
+            return this.FALLBACK_CHARACTER_WIDTH;
+        }
+    },
 
     paint: function(ctx) {
         if (!this.canvasShim) {
@@ -659,8 +631,8 @@ var EditorUI = Class.create({
         this.lastLineCount = ed.model.getRowCount();
 
         // character width
-		
-		var charWidth = this.getCharWidth(ctx);
+
+        var charWidth = this.getCharWidth(ctx);
         this.charWidth = charWidth;
         var lineHeight = this.LINE_HEIGHT; // temporarily reading from constant; should be calc'd at some point
         this.lineHeight = lineHeight;
@@ -1092,7 +1064,7 @@ var Editor = Class.create({
         this.selection;
         this.editorKeyListener = new DefaultEditorKeyListener(this);
         this.undoManager = new EditorUndoManager(this);
-		this.customEvents = new EditorCustomEvents(this);
+        this.customEvents = new EditorCustomEvents(this);
 
         this.ui.installKeyListener(this.editorKeyListener);
 
@@ -1149,40 +1121,40 @@ var Editor = Class.create({
 
 var EditorCustomEvents = Class.create({
     initialize: function(editor) {
-		this.editor = editor;
-			
-		document.observe("bespin:editor:openfile:opensuccess", function(event) {
-			var file = event.memo.file;
+        this.editor = editor;
 
-			editor.model.insertDocument(file.content);
-			editor.moveCursor({ row: 0, col: 0 });	
-		});
-		
-		// -- fire an event here and you can run any editor action
-		document.observe("bespin:editor:doaction", function(event) {
-			var action = event.memo.action;
-			var args   = event.memo.args || {
-				pos: EditorUtils.copyPos(_editor.cursorPosition)
-			}
-			
-			if (action) editor.ui.actions[action](args);
-		});
-		
-		// -- add key listeners
-		// e.g. bindkey ctrl b moveCursorLeft
-		document.observe("bespin:editor:bindkey", function(event) {			
-			var modifiers = event.memo.modifiers || '';
-			if (!event.memo.key) return;
-			
-			var keyCode = Key[event.memo.key.toUpperCase()];
+        document.observe("bespin:editor:openfile:opensuccess", function(event) {
+            var file = event.memo.file;
 
-			// -- try an editor action first, else fire away at the event bus
-			var action = editor.ui.actions[event.memo.action] || event.memo.action;
-			
-			if (keyCode && action) {				
-            	editor.editorKeyListener.bindKeyString(modifiers, keyCode, action);
-			}
-		});
-		
-	}
+            editor.model.insertDocument(file.content);
+            editor.moveCursor({ row: 0, col: 0 });
+        });
+
+        // -- fire an event here and you can run any editor action
+        document.observe("bespin:editor:doaction", function(event) {
+            var action = event.memo.action;
+            var args   = event.memo.args || {
+                pos: EditorUtils.copyPos(_editor.cursorPosition)
+            }
+
+            if (action) editor.ui.actions[action](args);
+        });
+
+        // -- add key listeners
+        // e.g. bindkey ctrl b moveCursorLeft
+        document.observe("bespin:editor:bindkey", function(event) {
+            var modifiers = event.memo.modifiers || '';
+            if (!event.memo.key) return;
+
+            var keyCode = Key[event.memo.key.toUpperCase()];
+
+            // -- try an editor action first, else fire away at the event bus
+            var action = editor.ui.actions[event.memo.action] || event.memo.action;
+
+            if (keyCode && action) {
+                editor.editorKeyListener.bindKeyString(modifiers, keyCode, action);
+            }
+        });
+
+    }
 });

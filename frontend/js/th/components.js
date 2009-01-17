@@ -1,31 +1,3 @@
-//  ***** BEGIN LICENSE BLOCK *****
-// Version: MPL 1.1
-// 
-// The contents of this file are subject to the Mozilla Public License  
-// Version
-// 1.1 (the "License"); you may not use this file except in compliance  
-// with
-// the License. You may obtain a copy of the License at
-// http://www.mozilla.org/MPL/
-// 
-// Software distributed under the License is distributed on an "AS IS"  
-// basis,
-// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the  
-// License
-// for the specific language governing rights and limitations under the
-// License.
-// 
-// The Original Code is Bespin.
-// 
-// The Initial Developer of the Original Code is Mozilla.
-// Portions created by the Initial Developer are Copyright (C) 2009
-// the Initial Developer. All Rights Reserved.
-// 
-// Contributor(s):
-// 
-// ***** END LICENSE BLOCK *****
-// 
-
 var Panel = Class.define({
     type: "Panel",
 
@@ -170,6 +142,9 @@ var Splitter = Class.define({
             this.bottomNib = new ResizeNib({ attributes: { orientation: this.attributes.orientation } });
             this.add(this.topNib, this.bottomNib);
 
+            this.label = parms.label;
+            if (this.label) this.add(this.label);
+
             this.bus.bind("drag", [ this.topNib, this.bottomNib ], this.ondrag, this);
             this.bus.bind("dragstart", [ this.topNib, this.bottomNib ], this.ondragstart, this);
             this.bus.bind("dragstop", [ this.topNib, this.bottomNib ], this.ondragstop, this);
@@ -196,17 +171,21 @@ var Splitter = Class.define({
         },
 
         layout: function() {
+            var d = this.d();
+
             // if the orientation isn't explicitly set, guess it by examining the ratio
             if (!this.attributes.orientation) this.attributes.orientation = (this.bounds.height > this.bounds.width) ? GTK.HORIZONTAL : GTK.VERTICAL;
 
             if (this.attributes.orientation == GTK.HORIZONTAL) {
-                var l = this.bounds.width;
-                this.topNib.bounds = { x: 0, y: 0, height: l, width: l }
-                this.bottomNib.bounds = { x: 0, y: this.bounds.height - l, height: l, width: l }
+                this.topNib.bounds = { x: 0, y: 0, height: d.b.w, width: d.b.w }
+                this.bottomNib.bounds = { x: 0, y: this.bounds.height - d.b.w, height: d.b.w, width: d.b.w }
             } else {
-                var l = this.bounds.height;
-                this.topNib.bounds = { x: 0, y: 0, height: l, width: l }
-                this.bottomNib.bounds = { x: this.bounds.width - l, y: 0, height: l, width: l }
+                this.topNib.bounds = { x: 0, y: 0, height: d.b.h, width: d.b.h }
+                this.bottomNib.bounds = { x: d.b.w - d.b.h, y: 0, height: d.b.h, width: d.b.h }
+
+                if (this.label) {
+                    this.label.bounds = { x: this.topNib.bounds.x + this.topNib.bounds.width, y: 0, height: d.b.h, width: d.b.w - (d.b.h * 2) }
+                }
             }
         },
 
@@ -248,7 +227,7 @@ var SplitPanelContainer = Class.define({
         init: function(parms) {
             this._super(parms);
 
-            this.splitter = new Splitter({ attributes: { orientation: this.attributes.orientation } });
+            this.splitter = new Splitter({ attributes: { orientation: this.attributes.orientation }, label: parms.label });
         },
 
         getContents: function() {
@@ -338,7 +317,7 @@ var SplitPanel = Class.define({
             for (var i = 0; i < this.attributes.regions.length; i++) {
                 var region = this.attributes.regions[i];
                 if (!region.container) {
-                    region.container = new SplitPanelContainer({ attributes: { orientation: this.attributes.orientation } });
+                    region.container = new SplitPanelContainer({ attributes: { orientation: this.attributes.orientation }, label: region.label });
 
                     region.container.region = region;   // give the container a reference back to the region
 
@@ -421,7 +400,7 @@ var Label = Class.define({
         init: function(parms) {
             if (!parms) parms = {};
             this._super(parms);
-            this.border = new EmptyBorder({ insets: { left: 5, right: 5, top: 2, bottom: 2 }});
+            if (!this.border) this.border = new EmptyBorder({ insets: { left: 5, right: 5, top: 2, bottom: 2 }});
             this.attributes.text = parms.text || "";
             if (!this.style.font) this.style.font = "12pt Arial";
             if (!this.style.color) this.style.color = "black";
@@ -539,7 +518,7 @@ var List = Class.define({
 
         onmousedown: function(e) {
             var item = this.getItemForPosition({ x: e.componentX, y: e.componentY });
-            if (item) {
+            if (item != this.selected) {
                 this.selected = item;
                 this.bus.fire("itemselected", { container: this, item: this.selected }, this); 
                 this.getScene().render();
@@ -560,6 +539,7 @@ var List = Class.define({
             this.renderer.style.font = this.style.font;
             this.renderer.style.color = this.style.color;
             this.renderer.selected = rctx.selected;
+            this.renderer.item = rctx.item;
             return this.renderer;
         },
 
@@ -655,8 +635,17 @@ var HorizontalTree = Class.define({
         },
 
         setData: function(data) {
+            for (var i = 0; i < this.lists.length; i++) {
+                this.remove(this.lists[i]);
+                this.remove(this.splitters[i]);
+                this.bus.unbind(this.lists[i]);
+                this.bus.unbind(this.splitters[i]);
+            }
+            this.lists = [];
+            this.splitters = [];
+
             this.data = data;
-            this.showChildren(data);
+            this.showChildren(null, data);
         },
 
         ondragstart: function(e) {
@@ -675,22 +664,35 @@ var HorizontalTree = Class.define({
             delete this.startSize;
         },
 
+        updateData: function(parent, contents) {
+            parent.contents = contents;
+            if (this.getSelectedItem() == parent) {
+                this.showChildren(parent, parent.contents);
+            }
+        },
+
         showChildren: function(newItem, children) {
             if (this.details) {
                 this.remove(this.details);
                 delete this.details;
             }
 
-//            if (!ArrayUtils.isArray(children)) {
-//                // if it's not an array, assume it's a function that will load the children
-//                return children(newItem, this);
-//            }
+            if (!ArrayUtils.isArray(children)) {
+                // if it's not an array, assume it's a function that will load the children
+                children(this.getSelectedPath(), this);
+                this.getScene().render();
+                return;
+            }
 
             if (!children || children.length == 0) return;
             var list = this.createList(children);
             list.id = "list " + (this.lists.length + 1);
 
             this.bus.bind("click", list, this.itemSelected, this);
+            var tree = this;
+            this.bus.bind("dblclick", list, function(e) {
+                tree.bus.fire("dblclick", e, tree);
+            });
             this.lists.push(list);
             this.add(list);
 
@@ -709,11 +711,12 @@ var HorizontalTree = Class.define({
         showDetails: function(item) {
             if (this.details) this.remove(this.details);
 
-            var panel = new Panel({ style: { backgroundColor: "white" } });
-            var label = new Label({ text: "Some details, please!" });
-            panel.add(label);
-            this.details = panel;
-            this.add(this.details);
+//            var panel = new Panel({ style: { backgroundColor: "white" } });
+//            var label = new Label({ text: "Some details, please!" });
+//            panel.add(label);
+//            this.details = panel;
+//            this.add(this.details);
+
             if (this.parent) this.getScene().render();
         },
 
@@ -727,6 +730,19 @@ var HorizontalTree = Class.define({
                 return label;
             }
             return list;
+        },
+
+        getSelectedItem: function() {
+            var selected = this.getSelectedPath();
+            if (selected.length > 0) return selected[selected.length - 1];
+        },
+
+        getSelectedPath: function() {
+            var path = [];
+
+            for (var i = 0; i < this.lists.length; i++) path.push(this.lists[i].selected);
+
+            return path;
         },
 
         itemSelected: function(e) {

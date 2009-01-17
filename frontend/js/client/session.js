@@ -1,31 +1,3 @@
-//  ***** BEGIN LICENSE BLOCK *****
-// Version: MPL 1.1
-// 
-// The contents of this file are subject to the Mozilla Public License  
-// Version
-// 1.1 (the "License"); you may not use this file except in compliance  
-// with
-// the License. You may obtain a copy of the License at
-// http://www.mozilla.org/MPL/
-// 
-// Software distributed under the License is distributed on an "AS IS"  
-// basis,
-// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the  
-// License
-// for the specific language governing rights and limitations under the
-// License.
-// 
-// The Original Code is Bespin.
-// 
-// The Initial Developer of the Original Code is Mozilla.
-// Portions created by the Initial Developer are Copyright (C) 2009
-// the Initial Developer. All Rights Reserved.
-// 
-// Contributor(s):
-// 
-// ***** END LICENSE BLOCK *****
-// 
-
 /*
  * EditSession represents a file edit session with the Bespin back-end server. It is responsible for
  * sending changes to the server as well as receiving changes from the server and mutating the document
@@ -63,8 +35,8 @@ var SyncHelper = Class.create({
         this.editor.undoManager.syncHelper = this;
         this.opQueue = [];
         this.lastOp = 0;
-		this.stopped = false;
-		
+        this.stopped = false;
+
         var self = this;
         setTimeout(function() { self.processSendQueue() }, self.SEND_INTERVAL );
     },
@@ -72,31 +44,31 @@ var SyncHelper = Class.create({
     retrieveUpdates: function() {
         var self = this;
 
-		// TODO: fix global references
+        // TODO: fix global references
         _server.editAfterActions(_editSession.project, _editSession.path, this.lastOp, function(json) { 
 
-	        self.editor.undoManager.syncHelper = undefined; // TODO: document why I do this
+            self.editor.undoManager.syncHelper = undefined; // TODO: document why I do this
 
-	        var ops = eval(json);
-	        this.lastOp += ops.length;
+            var ops = eval(json);
+            this.lastOp += ops.length;
 
-	        ops.each(function(op) {
-	            if (op.username != _editSession.username) { // don't play operations that have been performed by this user
-	                self.playOp(op);
-	                _showCollabHotCounter = 20;
-	            }
-	        });
+            ops.each(function(op) {
+                if (op.username != _editSession.username) { // don't play operations that have been performed by this user
+                    self.playOp(op);
+                    _showCollabHotCounter = 20;
+                }
+            });
 
-	        if (!_showCollab) {
-	            $("collaboration").src = (_showCollabHotCounter > 0) ? "images/icn_collab_watching.png" : "images/icn_collab_off.png";
-	        }
+            if (!_showCollab) {
+                $("collaboration").src = (_showCollabHotCounter > 0) ? "images/icn_collab_watching.png" : "images/icn_collab_off.png";
+            }
 
-	        if (_showCollabHotCounter > 0) _showCollabHotCounter--;
+            if (_showCollabHotCounter > 0) _showCollabHotCounter--;
 
-	        self.editor.undoManager.syncHelper = self;
+            self.editor.undoManager.syncHelper = self;
 
-	        if (!self.stopped) setTimeout(function() { self.retrieveUpdates() }, self.UPDATE_INTERVAL );
-		}); 
+            if (!self.stopped) setTimeout(function() { self.retrieveUpdates() }, self.UPDATE_INTERVAL );
+        });
     },
 
     playOp: function(val) {
@@ -113,25 +85,25 @@ var SyncHelper = Class.create({
     syncWithServer: function() {
         var self = this;
 
-		_server.editActions(_editSession.project, _editSession.path, function(json) {
-	        if (json.length > 2) {
-	            self.editor.undoManager.syncHelper = undefined;
+        _server.editActions(_editSession.project, _editSession.path, function(json) {
+            if (json.length > 2) {
+                self.editor.undoManager.syncHelper = undefined;
 
-	            var ops = eval(json);
-	            this.lastOp = ops.length;
+                var ops = eval(json);
+                this.lastOp = ops.length;
 
-	            self.editor.ui.actions.ignoreRepaints = true;
-	            ops.each(function(val) {
-	                self.playOp(val);
-	            });
-	            self.editor.ui.actions.ignoreRepaints = false;
-	            self.editor.ui.actions.repaint();
+                self.editor.ui.actions.ignoreRepaints = true;
+                ops.each(function(val) {
+                    self.playOp(val);
+                });
+                self.editor.ui.actions.ignoreRepaints = false;
+                self.editor.ui.actions.repaint();
 
-	            self.editor.undoManager.syncHelper = self;
-	        }
+                self.editor.undoManager.syncHelper = self;
+            }
 
-	        setTimeout(function() { self.retrieveUpdates() }, self.UPDATE_INTERVAL );			
-		});
+            setTimeout(function() { self.retrieveUpdates() }, self.UPDATE_INTERVAL );
+        });
     },
 
     stop: function() {
@@ -167,11 +139,11 @@ var SyncHelper = Class.create({
     },
 
     undo: function(op) {
-        this.opQueue.push(JSON.stringify({ username: _editSession.username, action: 'undo' }));
+        this.opQueue.push(Object.toJSON({ username: _editSession.username, action: 'undo' }));
     },
 
     redo: function(op) {
-        this.opQueue.push(JSON.stringify({ username: _editSession.username, action: 'redo' }));
+        this.opQueue.push(Object.toJSON({ username: _editSession.username, action: 'redo' }));
     },
 
     queueUndoOp: function(undoOp) {
@@ -180,10 +152,10 @@ var SyncHelper = Class.create({
             undoOp: undoOp.undoOp,
             redoOp: undoOp.redoOp
         }
-        this.opQueue.push(JSON.stringify(undoOpJson));
+        this.opQueue.push(Object.toJSON(undoOpJson));
     },
 
     queueSelect: function(selection) {
-        this.opQueue.push(JSON.stringify({ username: _editSession.username, action: "select", args: { startPos: (selection) ? selection.startPos : undefined, endPos: (selection) ? selection.endPos : undefined }}));
+        this.opQueue.push(Object.toJSON({ username: _editSession.username, action: "select", args: { startPos: (selection) ? selection.startPos : undefined, endPos: (selection) ? selection.endPos : undefined }}));
     }
 });

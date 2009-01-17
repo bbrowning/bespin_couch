@@ -1,31 +1,3 @@
-//  ***** BEGIN LICENSE BLOCK *****
-// Version: MPL 1.1
-// 
-// The contents of this file are subject to the Mozilla Public License  
-// Version
-// 1.1 (the "License"); you may not use this file except in compliance  
-// with
-// the License. You may obtain a copy of the License at
-// http://www.mozilla.org/MPL/
-// 
-// Software distributed under the License is distributed on an "AS IS"  
-// basis,
-// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the  
-// License
-// for the specific language governing rights and limitations under the
-// License.
-// 
-// The Original Code is Bespin.
-// 
-// The Initial Developer of the Original Code is Mozilla.
-// Portions created by the Initial Developer are Copyright (C) 2009
-// the Initial Developer. All Rights Reserved.
-// 
-// Contributor(s):
-// 
-// ***** END LICENSE BLOCK *****
-// 
-
 var BespinBorder = Class.define({
     type: "BespinBorder",
 
@@ -73,7 +45,16 @@ var BespinSessionPanel = Class.define({
             this.details = new Label({ style: { color: "rgb(160, 157, 147)" } });
             this.editTime = new Label({ style: { color: "rgb(160, 157, 147)" } });
 
-            this.add([ this.filename, this.path, this.opened, this.details, this.editTime ]);
+            var labels = [ this.filename, this.path, this.opened, this.details, this.editTime ];
+
+            this.add(labels);
+
+            var panel = this;
+            for (var i = 0; i < labels.length; i++) {
+                this.bus.bind("dblclick", labels[i], function(e) {
+                    panel.bus.fire("dblclick", e, panel);
+                });
+            }
 
             this.style.border = new BespinBorder();
             this.style.backgroundColor = "rgb(67, 65, 58)";
@@ -81,12 +62,15 @@ var BespinSessionPanel = Class.define({
             this.preferredSizes = [ 13, 9, 8, 8, 8 ];
             this.minimumSizes = [ 9, 8, 7, 7, 7 ];
 
+            this.filename.attributes.text = parms.filename;
+            this.path.attributes.text = parms.project + ": /" + parms.path;
+
             // dummy data
-            this.filename.attributes.text = "bespin_stuff.js";
-            this.path.attributes.text = "Project: some/path/to/file";
-            this.opened.attributes.text = "Opened two days ago; last edited 10 minutes ago";
-            this.details.attributes.text = "45 changes, including 20 new lines, 10 deleted lines, and 122 keystrokes";
-            this.editTime.attributes.text = "22 minutes estimated editing time";
+            this.opened.attributes.text = "(opened info)";
+            this.details.attributes.text = "(edit details info)";
+            this.editTime.attributes.text = "(editing time)";
+
+            this.session = { filename: parms.filename, path: parms.path, project: parms.project };
         },
 
         layout: function() {
