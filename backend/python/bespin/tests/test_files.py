@@ -27,14 +27,17 @@
 # 
 
 import os
+from cStringIO import StringIO
+import tarfile
+import zipfile
 
 from webtest import TestApp
 import simplejson
 
 from bespin import config, controllers, model
 
-tarfile = os.path.join(os.path.dirname(__file__), "ut.tgz")
-zipfile = os.path.join(os.path.dirname(__file__), "ut.zip")
+tarfilename = os.path.join(os.path.dirname(__file__), "ut.tgz")
+zipfilename = os.path.join(os.path.dirname(__file__), "ut.zip")
 
 app = None
 
@@ -82,7 +85,15 @@ def test_can_only_access_own_projects():
         (fm.list_edits, ("Murdoc", "bigmac", "foo"),
         "Murdoc can't view the sekret edits"),
         (fm.close, ("Murdoc", "bigmac", "foo"),
-        "Murdoc can't close files either")
+        "Murdoc can't close files either"),
+        (fm.export_tarball, ("Murdoc", "bigmac"),
+        "Murdoc can't export Mac's tarballs"),
+        (fm.export_zipfile, ("Murdoc", "bigmac"),
+        "Murdoc can't export Mac's zipfiles"),
+        (fm.import_tarball, ("Murdoc", "bigmac", "foo.tgz", "foo"),
+        "Murdoc can't reimport projects"),
+        (fm.import_zipfile, ("Murdoc", "bigmac", "foo.zip", "foo"),
+        "Murdoc can't reimport projects")
     ]
     def run_one(t):
         try:
@@ -355,8 +366,8 @@ def test_secondary_objects_are_saved_when_creating_new_file():
     
 def test_import():
     tests = [
-        ("import_tarball", tarfile),
-        ("import_zipfile", zipfile)
+        ("import_tarball", tarfilename),
+        ("import_zipfile", zipfilename)
     ]
     
     def run_one(func, f):
@@ -382,7 +393,37 @@ def test_import():
     for test in tests:
         yield run_one, test[0], test[1]
     
-    
+def test_export_tarfile():
+    fm = _get_fm()
+    handle = open(tarfilename)
+    fm.import_tarball("MacGyver", "bigmac",
+        os.path.basename(tarfilename), handle)
+    fm.commit()
+    handle.close()
+    tempfilename = fm.export_tarball("MacGyver", "bigmac")
+    tfile = tarfile.open(tempfilename.name)
+    members = tfile.getmembers()
+    assert len(members) == 7
+    names = set(member.name for member in members)
+    # the extra slash shows up in this context, but does not seem to be a problem
+    assert 'bigmac//' in names
+
+def test_export_zipfile():
+    fm = _get_fm()
+    handle = open(tarfilename)
+    fm.import_tarball("MacGyver", "bigmac",
+        os.path.basename(tarfilename), handle)
+    fm.commit()
+    handle.close()
+    tempfilename = fm.export_zipfile("MacGyver", "bigmac")
+    zfile = zipfile.ZipFile(tempfilename.name)
+    members = zfile.infolist()
+    assert len(members) == 3
+    names = set(member.filename for member in members)
+    # the extra slash shows up in this context, but does not seem to be a problem
+    assert 'bigmac/usertemplate/commands/yourcommands.js' in names
+
+
 # -------
 # Web tests
 # -------
@@ -481,7 +522,7 @@ def test_private_project_does_not_appear_in_list():
     assert data == ["MacGyver_New_Project/", "bigmac/"]
 
 def test_import_from_the_web():
-    tests = [tarfile, zipfile]
+    tests = [tarfilename, zipfilename]
     
     def run_one(f):
         fm = _get_fm()
@@ -503,3 +544,30 @@ def test_import_unknown_file_type():
         ("filedata", "foo.bar", "Some dummy text")
     ], status=400)
     
+def test_export_unknown_file_type():
+    fm = _get_fm()
+    fm.save_file("MacGyver", "bigmac", "foo/bar", "INFO!")
+    app.get("/project/export/bigmac.foo", status=404)
+    
+def test_export_tarball_from_the_web():
+    fm = _get_fm()
+    fm.save_file("MacGyver", "bigmac", "foo/bar", "INFO!")
+    fm.commit()
+    resp = app.get("/project/export/bigmac.tgz")
+    assert resp.content_type == "application/x-tar-gz"
+    tfile = tarfile.open("bigmac.tgz", "r:gz", StringIO(resp.body))
+    members = tfile.getmembers()
+    assert len(members) == 3
+    membersnames = [member.name for member in members]
+    assert "bigmac/foo/bar" in membersnames
+
+def test_export_zipfile_from_the_web():
+    fm = _get_fm()
+    fm.save_file("MacGyver", "bigmac", "foo/bar", "INFO!")
+    fm.commit()
+    resp = app.get("/project/export/bigmac.zip")
+    assert resp.content_type == "application/zip"
+    zfile = zipfile.ZipFile(StringIO(resp.body))
+    members = zfile.infolist()
+    assert len(members) == 1
+    assert "bigmac/foo/bar" == members[0].filename

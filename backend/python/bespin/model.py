@@ -28,8 +28,11 @@
 
 """Data classes for working with files/projects/users."""
 import os
+import time
+from cStringIO import StringIO
 import hashlib
 import tarfile
+import tempfile
 import zipfile
 
 import pkg_resources
@@ -498,3 +501,68 @@ class FileManager(object):
             self.save_file(user, project_name, member.filename,
                 pfile.read(member.filename))
         
+    def export_tarball(self, user, project_name):
+        """Exports the project as a tarball, returning a 
+        NamedTemporaryFile object. You can either use that
+        open file handle or use the .name property to get
+        at the file."""
+        project = self.get_project(user, project_name)
+        fs = self.file_store
+        temporaryfile = tempfile.NamedTemporaryFile()
+        mtime = time.time()
+        tfile = tarfile.open(temporaryfile.name, "w:gz")
+        def add_to_tarfile(item, path=project_name + "/"):
+            next_path = "%s%s" % (path, item)
+            obj = fs[next_path]
+            if isinstance(obj, Directory):
+                tarinfo = tarfile.TarInfo(next_path[:-1])
+                tarinfo.type = tarfile.DIRTYPE
+                # we don't know the original permissions.
+                # we'll default to read/execute for all, write only by user
+                tarinfo.mode = 493
+                tarinfo.mtime = mtime
+                tfile.addfile(tarinfo)
+                for f in obj.files:
+                    add_to_tarfile(f, next_path)
+            else:
+                tarinfo = tarfile.TarInfo(next_path)
+                tarinfo.mtime = mtime
+                # we don't know the original permissions.
+                # we'll default to read for all, write only by user
+                tarinfo.mode = 420
+                tarinfo.size = len(obj)
+                fileobj = StringIO(obj)
+                tfile.addfile(tarinfo, fileobj)
+        add_to_tarfile("")
+        tfile.close()
+        temporaryfile.seek(0)
+        return temporaryfile
+        
+    def export_zipfile(self, user, project_name):
+        """Exports the project as a zip file, returning a 
+        NamedTemporaryFile object. You can either use that
+        open file handle or use the .name property to get
+        at the file."""
+        project = self.get_project(user, project_name)
+        fs = self.file_store
+        temporaryfile = tempfile.NamedTemporaryFile()
+        zfile = zipfile.ZipFile(temporaryfile, "w", zipfile.ZIP_DEFLATED)
+        ztime = time.gmtime()[:6]
+        def add_to_zipfile(item, path=project_name + "/"):
+            next_path = "%s%s" % (path, item)
+            obj = fs[next_path]
+            if isinstance(obj, Directory):
+                for f in obj.files:
+                    add_to_zipfile(f, next_path)
+                return
+            zipinfo = zipfile.ZipInfo(next_path)
+            # we don't know the original permissions.
+            # we'll default to read for all, write only by user
+            zipinfo.external_attr = 420 << 16L
+            zipinfo.date_time = ztime
+            zipinfo.compress_type = zipfile.ZIP_DEFLATED
+            zfile.writestr(zipinfo, obj)
+        add_to_zipfile("")
+        zfile.close()
+        temporaryfile.seek(0)
+        return temporaryfile
