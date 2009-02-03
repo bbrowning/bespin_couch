@@ -122,10 +122,7 @@ document.observe("bespin:editor:openfile:opensuccess", function(event) {
         filename = filename.split('').reverse().join('').truncate(40).split('').reverse().join(''); // heh sorry!
     }
 
-//    $('status').innerHTML = '<span id="project" title="Current project">' + _editSession.project + '</span> <span class="seperator" style="">&rsaquo;</span> <span id="filename" title="Current file">' + filename + '</span>';
-    _projectLabel.attributes.text = _editSession.project;
-    _fileLabel.attributes.text = filename;
-    _scene.render();
+    $('status').innerHTML = '<span id="project" title="Current project">' + _editSession.project + '</span> <span class="seperator" style="">&rsaquo;</span> <span id="filename" title="Current file">' + filename + '</span>';
 
     document.fire("bespin:editor:titlechange", { filename: file.name });
 
