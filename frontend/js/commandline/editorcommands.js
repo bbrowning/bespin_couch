@@ -21,27 +21,12 @@
  *   Bespin Team (bespin@mozilla.com)
  *
  * ***** END LICENSE BLOCK ***** */
-
+ 
 if (typeof Bespin == "undefined") Bespin = {};
+if (!Bespin.Commands) Bespin.Commands = {};
 
-// = URLBar =
+// = Bespin.Commands.Editor =
 //
-// URLBar watches the browser URL navigation bar for changes. 
-// If it sees a change it tries to open the file
-// The common case is using the back/forward buttons
+// This array stores all of the editor commands.
 
-Bespin.URLBar = {
-    last: document.location.hash,
-    check: function() {
-        var hash = document.location.hash;
-        if (this.last != hash) {
-            var urlchange = new Bespin.Settings.URL(hash);
-            document.fire("bespin:editor:openfile", { filename: urlchange.get('path') });
-            this.last = hash;
-        }
-    }
-};
-
-setInterval(function() {
-    Bespin.URLBar.check.apply(Bespin.URLBar);
-}, 200);
+Bespin.Commands.Editor = $H(Bespin.Commands.Store).keys();

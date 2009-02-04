@@ -36,6 +36,7 @@ import tempfile
 
 from bespin.config import c
 from bespin.framework import expose, BadRequest
+from bespin import model
 
 @expose(r'^/register/new/(?P<username>.*)$', 'POST', auth=False)
 def new_user(request, response):
@@ -197,8 +198,31 @@ def listfiles(request, response):
         
     files = fm.list_files(request.username, project, path)
     pp = request.user.private_project
-    result = [item.short_name for item in files
-                if item.name != pp]
+    result = []
+    for item in files:
+        if item.name == pp:
+            continue
+        f = {'name' : item.short_name}
+        _populate_stats(item, f)
+        result.append(f)
+    response.content_type = "application/json"
+    response.body = simplejson.dumps(result)
+    return response()
+    
+def _populate_stats(item, result):
+    if isinstance(item, model.File):
+        result['size'] = item.saved_size
+        result['created'] = item.created.strftime("%Y%m%dT%H%M%S")
+        result['modified'] = item.modified.strftime("%Y%m%dT%H%M%S")
+        result['openedBy'] = [fs.user.username for fs in item.users]
+    
+@expose(r'^/file/stats/(?P<path>.+)$', 'GET')
+def filestats(request, response):
+    fm = request.file_manager
+    project, path = _split_path(request)
+    file_obj = fm.get_file_object(request.username, project, path)
+    result = {}
+    _populate_stats(file_obj, result)
     response.content_type = "application/json"
     response.body = simplejson.dumps(result)
     return response()

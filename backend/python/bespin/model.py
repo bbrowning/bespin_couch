@@ -34,11 +34,13 @@ import hashlib
 import tarfile
 import tempfile
 import zipfile
+from datetime import datetime
 
 import pkg_resources
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, PickleType, String, Integer, \
-                    Boolean, Binary, Table, ForeignKey
+from sqlalchemy import (Column, PickleType, String, Integer,
+                    Boolean, Binary, Table, ForeignKey,
+                    DateTime)
 from sqlalchemy.orm import relation, deferred, mapper, backref
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.exc import NoResultFound
@@ -137,8 +139,11 @@ class File(Base):
     
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
+    created = Column(DateTime, default=datetime.now)
+    modified = Column(DateTime, onupdate=datetime.now)
+    saved_size = Column(Integer)
     data = deferred(Column(Binary))
-    edits = Column(PickleType)
+    edits = deferred(Column(PickleType))
     dir_id = Column(Integer, ForeignKey('directories.id'))
     dir = relation('Directory', backref="files")
     
@@ -167,7 +172,7 @@ class Directory(Base):
     
     @property
     def short_name(self):
-        return self.name.rsplit("/", 1)[1] + "/"
+        return self.name.rsplit("/", 2)[-2] + "/"
         
     def __str__(self):
         return "Dir: %s" % (self.name)
@@ -220,9 +225,20 @@ class FileManager(object):
         """Gets the contents of the file as a string. Raises
         FileNotFound if the file does not exist. The file is 
         marked as open after this call."""
+        
+        project, user_obj, file_obj = \
+            self._check_and_get_file(user, project_name, path)
+        self._save_status(file_obj, user_obj, mode)
+        
+        contents = str(file_obj.data)
+        return contents
+        
+    def _check_and_get_file(self, user, project_name, path):
+        """Returns the project, user object, file object."""
         project, user_obj = self.get_project(user, project_name)
         s = self.session
         full_path = project_name + "/" + path
+        
         try:
             file_obj = s.query(File).filter_by(name=full_path).one()
         except NoResultFound:
@@ -233,9 +249,14 @@ class FileManager(object):
             raise FileNotFound("File %s in project %s does not exist" 
                                 % (path, project_name))
         
-        self._save_status(file_obj, user_obj, mode)
-        contents = str(file_obj.data)
-        return contents
+        return project, user_obj, file_obj
+        
+    def get_file_object(self, user, project_name, path):
+        """Retrieves the File instance from the project at the
+        path provided."""
+        project, user_obj, file_obj = \
+            self._check_and_get_file(user, project_name, path)
+        return file_obj
     
     def _save_status(self, file_obj, user_obj, mode="rw"):
         s = self.session
@@ -310,16 +331,14 @@ class FileManager(object):
         last_edit parameter should include the last edit ID received by
         the user."""
         project, user_obj = self.get_project(user, project_name, create=True)
+        
         s = self.session
         full_path = project_name + "/" + path
         segments = full_path.split("/")
         fn = segments[-1]
+        
         last_d = None
-        # The project object is the root directory of the paths
-        # but its name appears in the filename keys. So, the
-        # filenames will all have the project name which is
-        # why it's in full_path, but we can skip the first part
-        # of the path
+        
         for i in range(1, len(segments)):
             segment = "/".join(segments[0:i]) + "/"
             try:
@@ -335,17 +354,23 @@ class FileManager(object):
         subdir_names = [item.name for item in last_d.subdirs]
         if (full_path + "/") in subdir_names:
             raise FileConflict("Cannot save a file at %s because there is a directory there." % full_path)
+        
+        saved_size = len(contents) if contents is not None else 0    
+        
         try:
             file = s.query(File).filter_by(name=full_path).one()
             file.data = contents
+            file.saved_size = saved_size
         except NoResultFound:
-            file = File(name=full_path, dir=last_d, data=contents)
+            file = File(name=full_path, dir=last_d, data=contents,
+                        saved_size=saved_size)
             s.add(file)
+            
         self.reset_edits(user, project_name, path)
         return file
         
     def list_open(self, user):
-        """list open files for the current user. a dictionary of { project: { filename: mode } } will be returned. For example, if subdir1/subdir2/test.py is open read/write, openfiles will return { "subdir1": { "somedir2/test.py": "rw" } }"""
+        """list open files for the current user. a dictionary of { project: { filename: mode } } will be returned. For example, if subdir1/subdir2/test.py is open read/write, openfiles will return { "subdir1": { "somedir2/test.py": {"mode" : "rw"} } }"""
         user = self.db.user_manager.get_user(user)
         output = {}
         current_files = None
@@ -357,7 +382,7 @@ class FileManager(object):
                 current_files = {}
                 output[project] = current_files
             mode = "rw" if not fs.read_only else "r"
-            current_files[path] = mode
+            current_files[path] = dict(mode=mode)
             
         return output
         

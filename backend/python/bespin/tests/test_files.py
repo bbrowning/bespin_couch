@@ -30,6 +30,7 @@ import os
 from cStringIO import StringIO
 import tarfile
 import zipfile
+from datetime import datetime, timedelta
 
 from webtest import TestApp
 import simplejson
@@ -72,6 +73,14 @@ def test_basic_file_creation():
     file_obj = fm.session.query(model.File).filter_by(name="bigmac/reqs").one()
     data = str(file_obj.data)
     assert data == 'Chewing gum wrapper'
+    assert file_obj.saved_size == 19
+    
+    now = datetime.now()
+    assert now - file_obj.created < timedelta(seconds=2)
+    
+    file_obj.created = file_obj.created - timedelta(days=1)
+    fm.session.flush()
+    
     files = fm.list_files("MacGyver", "bigmac", "")
     assert len(files) == 1
     assert files[0].name == 'bigmac/reqs'
@@ -79,16 +88,36 @@ def test_basic_file_creation():
     proj_names = set([proj.name for proj in user.projects])
     assert proj_names == set(['bigmac', "MacGyver_New_Project", 
                               user.private_project])
+    
     # let's update the contents
     fm.save_file("MacGyver", "bigmac", "reqs", "New content")
     file_obj = fm.session.query(model.File).filter_by(name="bigmac/reqs").one()
+    
+    assert now - file_obj.created < timedelta(days=1, seconds=2)
+    assert now - file_obj.modified < timedelta(seconds=2)
+    
     assert file_obj.data == 'New content'
     fm.session.rollback()
+    
+def test_retrieve_file_obj():
+    fm = _get_fm()
+    fm.save_file("MacGyver", "bigmac", "reqs", "tenletters")
+    try:
+        fm.get_file_object("MacGyver", "bigmac", "foo/bar")
+        assert False, "expected file not found for missing file"
+    except model.FileNotFound:
+        pass
+        
+    file_obj = fm.get_file_object("MacGyver", "bigmac", "reqs")
+    assert file_obj.saved_size == 10
+        
     
 def test_can_only_access_own_projects():
     tests = [
         ("get_file", ("Murdoc", "bigmac", "foo"), 
         "Murdoc should *not* be viewing Mac's stuff!"),
+        ("get_file_object", ("Murdoc", "bigmac", "foo"),
+        "Murdoc can't even see stats"),
         ("list_files", ("Murdoc", "bigmac", ""),
         "Murdoc should not be listing Mac's files!"),
         ("delete", ("Murdoc", "bigmac", "foo"),
@@ -145,12 +174,14 @@ def test_get_file_opens_the_file():
     assert file_obj in files
     
     open_files = fm.list_open("MacGyver")
-    assert open_files == {'bigmac' : {"foo/bar/baz" : "rw"}}
+    info = open_files['bigmac']['foo/bar/baz']
+    assert info['mode'] == "rw"
     
     fm.close("MacGyver", "bigmac", "foo")
     # does nothing, because we don't have that one open
     open_files = fm.list_open("MacGyver")
-    assert open_files == {'bigmac' : {"foo/bar/baz" : "rw"}}
+    info = open_files['bigmac']['foo/bar/baz']
+    assert info['mode'] == "rw"
     
     fm.close("MacGyver", "bigmac", "foo/bar/baz")
     open_files = fm.list_open("MacGyver")
@@ -173,6 +204,16 @@ def test_get_file_raises_not_found_exception():
         assert False, "Expected exception for not found"
     except model.FileNotFound:
         pass
+    
+def test_directory_shortname_computed_to_have_last_dir():
+    fm = _get_fm()
+    fm.save_file("MacGyver", "bigmac", "foo/bar/baz", "biz")
+    res = fm.list_files("MacGyver", "bigmac", "foo/")
+    assert len(res) == 1
+    d = res[0]
+    shortname = d.short_name
+    assert shortname == "bar/"
+    
     
 def test_delete_raises_file_not_found():
     fm = _get_fm()
@@ -295,7 +336,8 @@ def test_basic_edit_functions():
         pass
         
     files = fm.list_open("MacGyver")
-    assert files == {'bigmac' : {'foo/bar/baz' : 'rw'}}
+    info = files['bigmac']['foo/bar/baz']
+    assert info['mode'] == "rw"
     
     edits = fm.list_edits("MacGyver", "bigmac", "foo/bar/baz")
     assert edits == ["['edit', 'thinger']"]
@@ -324,7 +366,8 @@ def test_reset_edits():
     fm.save_edit("MacGyver", "bigmac", "foo/bar/baz", "['edit', 'thinger']")
     fm.save_edit("MacGyver", "bigmac", "foo/bar/blork", "['edit', 'thinger']")
     files = fm.list_open("MacGyver")
-    assert files == {'bigmac': {'foo/bar/baz': 'rw', 'foo/bar/blork': 'rw'}}
+    bigmac_files = files['bigmac']
+    assert len(bigmac_files) == 2
     fm.reset_edits("MacGyver")
     files = fm.list_open("MacGyver")
     assert files == {}
@@ -493,21 +536,34 @@ def test_good_file_operations_from_web():
     s = fm.session
     app.put("/file/at/bigmac/reqs", "Chewing gum wrapper")
     fileobj = s.query(File).filter_by(name="bigmac/reqs").one()
+    fileobj.created = datetime(2009, 2, 3, 10, 0, 0)
+    fileobj.modified = datetime(2009, 2, 4, 11, 30, 30)
+    s.commit()
     contents = str(fileobj.data)
     assert contents == "Chewing gum wrapper"
+    
     resp = app.get("/file/at/bigmac/reqs")
     assert resp.body == "Chewing gum wrapper"
     resp = app.get("/file/listopen/")
     assert resp.content_type == "application/json"
     data = simplejson.loads(resp.body)
-    assert data == {'bigmac' : {'reqs' : 'rw'}}
+    bigmac_data = data['bigmac']
+    assert len(bigmac_data) == 1
+    assert bigmac_data['reqs']['mode'] == "rw"
     app.post("/file/close/bigmac/reqs")
     
     resp = app.get("/file/at/bigmac/reqs?mode=r")
     assert resp.body == "Chewing gum wrapper"
+    
+    resp = app.get("/file/list/bigmac/")
+    data = simplejson.loads(resp.body)
+    assert data[0]['openedBy'] == ['MacGyver']
+    
     resp = app.get("/file/listopen/")
     data = simplejson.loads(resp.body)
-    assert data == {'bigmac' : {'reqs' : 'r'}}
+    bigmac_data = data['bigmac']
+    assert len(bigmac_data) == 1
+    assert bigmac_data['reqs']['mode'] == "r"
     app.post("/file/close/bigmac/reqs")
     resp = app.get("/file/listopen/")
     data = simplejson.loads(resp.body)
@@ -515,16 +571,22 @@ def test_good_file_operations_from_web():
     
     resp = app.get("/file/list/")
     data = simplejson.loads(resp.body)
-    assert data == ['MacGyver_New_Project/', 'bigmac/']
+    assert data == [{'name' : 'MacGyver_New_Project/'}, 
+                    {'name' : 'bigmac/'}]
     
     resp = app.get("/file/list/MacGyver_New_Project/")
     data = simplejson.loads(resp.body)
-    assert 'readme.txt' in data
+    assert data[1]['name'] == 'readme.txt'
     
     resp = app.get("/file/list/bigmac/")
     assert resp.content_type == "application/json"
     data = simplejson.loads(resp.body)
-    assert data == ['reqs']
+    assert len(data) == 1
+    data = data[0]
+    assert data['name'] == 'reqs'
+    assert data['size'] == 19
+    assert data['created'] == "20090203T100000"
+    assert data['modified'] == '20090204T113030'
     
     app.delete("/file/at/bigmac/reqs")
     resp = app.get("/file/list/bigmac/")
@@ -561,7 +623,9 @@ def test_edit_interface():
     
     resp = app.get("/file/listopen/")
     data = simplejson.loads(resp.body)
-    assert data == {'bigmac' : {'bar/baz' : 'rw'}}
+    bigmac_data = data['bigmac']
+    assert len(bigmac_data) == 1
+    assert bigmac_data['bar/baz']['mode'] == 'rw'
     
     app.post("/edit/reset/")
     resp = app.get("/edit/list/bigmac/bar/baz")
@@ -583,7 +647,8 @@ def test_private_project_does_not_appear_in_list():
     app.post("/file/close/%s/foo" % project_name)
     resp = app.get("/file/list/")
     data = simplejson.loads(resp.body)
-    assert data == ["MacGyver_New_Project/"]
+    assert len(data) == 1
+    assert data[0]['name'] == "MacGyver_New_Project/"
 
 def test_import_from_the_web():
     tests = [tarfilename, zipfilename]
@@ -633,3 +698,12 @@ def test_export_zipfile_from_the_web():
     members = zfile.infolist()
     assert len(members) == 1
     assert "bigmac/foo/bar" == members[0].filename
+    
+def test_get_file_stats_from_web():
+    fm = _get_fm()
+    s = fm.session
+    app.put("/file/at/bigmac/reqs", "Chewing gum wrapper")
+    resp = app.get("/file/stats/bigmac/reqs")
+    assert resp.content_type == "application/json"
+    data = simplejson.loads(resp.body)
+    assert data['size'] == 19
