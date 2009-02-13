@@ -27,6 +27,7 @@
 # 
 
 import re
+import os
 
 from setuptools import find_packages
 from paver.setuputils import find_package_data
@@ -38,7 +39,7 @@ import paver.virtual
 options(
     setup=Bunch(
         name="BespinServer",
-        version="0.1a10",
+        version="0.1",
         packages=find_packages(),
         package_data=find_package_data('bespin', 'bespin', 
                                 only_in_packages=False)
@@ -50,7 +51,8 @@ options(
     server=Bunch(
         # set to true to allow connections from other machines
         open=False,
-        port=8080
+        port=8080,
+        try_build=False
     )
 )
 
@@ -83,6 +85,9 @@ def start():
     options.order('server')
     
     config.set_profile('dev')
+    
+    if options.server.try_build:
+        config.c.static_dir = os.path.abspath("%s/../../build/BespinServer/frontend" % os.getcwd())
     config.activate_profile()
     port = int(options.port)
     if options.open in ["True", "true", "yes", "1"]:
@@ -91,6 +96,12 @@ def start():
         listen_on = "localhost"
     info("Server starting on %s:%s" % (listen_on, port))
     make_server(listen_on, port, controllers.make_app()).serve_forever()
+    
+@task
+def try_build():
+    """Starts the server using the compressed JavaScript."""
+    options.server.try_build=True
+    start()
     
 @task
 def clean_data():
