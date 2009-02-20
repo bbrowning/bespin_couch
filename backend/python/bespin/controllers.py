@@ -53,10 +53,14 @@ def new_user(request, response):
     except KeyError:
         raise BadRequest("username, email and password are required.")
     user = request.user_manager.create_user(username, password, email)
-    request.file_manager.install_template(user, user.private_project,
+    
+    file_manager = request.file_manager
+    settings_project = file_manager.get_project(user, user, 
+                        "BespinSettings", create=True)
+    file_manager.install_template(user, settings_project,
                                           'usertemplate')
     response.content_type = "application/json"
-    response.body = simplejson.dumps(dict(project=user.private_project))
+    response.body = "{}"
     request.environ['paste.auth_tkt.set_user'](username)
     return response()
 
@@ -64,15 +68,12 @@ def new_user(request, response):
 def get_registered(request, response):
     response.content_type = "application/json"
     if request.user:
-        private_project = request.user.private_project
         quota, amount_used = request.user.quota_info()
     else:
-        private_project = None
         quota = None
         amount_used = None
     response.body=simplejson.dumps(
         dict(username=request.username,
-        project=private_project,
         quota=quota, amountUsed=amount_used)
     )
     return response()
@@ -90,13 +91,7 @@ def login(request, response):
     request.environ['paste.auth_tkt.set_user'](username)
     
     response.content_type = "application/json"
-    if request.user:
-        private_project = request.user.private_project
-    else:
-        private_project = None
-    response.body=simplejson.dumps(
-        dict(project=private_project)
-    )
+    response.body="{}"
     return response()
 
 @expose(r'^/register/logout/$')
@@ -164,37 +159,55 @@ def listopen(request, response):
 @expose(r'^/file/at/(?P<path>.*)$', 'PUT')
 def putfile(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    fm.save_file(request.user, project, path,
+    project = fm.get_project(user, user, project, create=True)
+    
+    fm.save_file(user, project, path,
                  request.body)
     return response()
 
 @expose(r'^/file/at/(?P<path>.*)$', 'GET')
 def getfile(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
+    project = fm.get_project(user, user, project)
+    
     mode = request.GET.get('mode', 'rw')
-    contents = fm.get_file(request.user, project, path, mode)
+    contents = fm.get_file(user, project, path, mode)
     response.body = contents
     return response()
     
 @expose(r'^/file/close/(?P<path>.*)$', 'POST')
 def postfile(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    fm.close(request.user, project, path)
+    project = fm.get_project(user, user, project)
+    
+    fm.close(user, project, path)
     return response()
 
 @expose(r'^/file/at/(?P<path>.*)$', 'DELETE')
 def deletefile(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    fm.delete(request.user, project, path)
+    project = fm.get_project(user, user, project)
+    
+    fm.delete(user, project, path)
     return response()
 
 @expose(r'^/file/list/(?P<path>.*)$', 'GET')
 def listfiles(request, response):
     fm = request.file_manager
+    user = request.user
+    
     path = request.kwargs['path']
     if not path:
         project = ''
@@ -205,16 +218,17 @@ def listfiles(request, response):
         except BadRequest:
             project = path
             path = ''
-        
-    files = fm.list_files(request.user, project, path)
-    pp = request.user.private_project
+    
+    if project:
+        project = fm.get_project(user, user, project)
+    
+    files = fm.list_files(user, project, path)
     result = []
     for item in files:
-        if item.name == pp:
-            continue
         f = {'name' : item.short_name}
         _populate_stats(item, f)
         result.append(f)
+        
     response.content_type = "application/json"
     response.body = simplejson.dumps(result)
     return response()
@@ -229,8 +243,12 @@ def _populate_stats(item, result):
 @expose(r'^/file/stats/(?P<path>.+)$', 'GET')
 def filestats(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    file_obj = fm.get_file_object(request.user, project, path)
+    project = fm.get_project(user, user, project)
+    
+    file_obj = fm.get_file_object(user, project, path)
     result = {}
     _populate_stats(file_obj, result)
     response.content_type = "application/json"
@@ -240,15 +258,23 @@ def filestats(request, response):
 @expose(r'^/edit/at/(?P<path>.*)$', 'PUT')
 def save_edit(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    fm.save_edit(request.user, project, path, 
+    project = fm.get_project(user, user, project, create=True)
+    
+    fm.save_edit(user, project, path, 
                  request.body)
     return response()
 
 def _get_edit_list(request, response, start_at=0):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    edits = fm.list_edits(request.user, project, path, start_at)
+    project = fm.get_project(user, user, project)
+    
+    edits = fm.list_edits(user, project, path, start_at)
     response.content_type = "application/json"
     response.body = simplejson.dumps(edits)
     return response()
@@ -270,8 +296,12 @@ def reset_all(request, response):
 @expose(r'^/edit/reset/(?P<path>.+)$', 'POST')
 def reset(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    fm.reset_edits(request.user, project, path)
+    project = fm.get_project(user, user, project)
+    
+    fm.reset_edits(user, project, path)
     return response()
 
 @expose(r'^/(editor|dashboard)\.html', 'GET', auth=False)
@@ -294,7 +324,7 @@ def import_project(request, response):
                     input_file.file)
     return response()
     
-def _perform_import(file_manager, username, project_name, filename, fileobj):
+def _perform_import(file_manager, user, project_name, filename, fileobj):
     if filename.endswith(".tgz") or filename.endswith(".tar.gz"):
         func = file_manager.import_tarball
     elif filename.endswith(".zip"):
@@ -303,8 +333,10 @@ def _perform_import(file_manager, username, project_name, filename, fileobj):
         raise BadRequest(
             "Import only supports .tar.gz, .tgz and .zip at this time.")
         
-    func(username,
-        project_name, filename, fileobj)
+    project = file_manager.get_project(user, user, project_name, clean=True)
+    
+    func(user,
+        project, filename, fileobj)
     return
     
 @expose(r'^/project/fromurl/(?P<project_name>[^/]+)', "POST")
@@ -342,15 +374,21 @@ def import_from_url(request, response):
 
 @expose(r'^/project/export/(?P<project_name>.*(\.zip|\.tgz))')
 def export_project(request, response):
+    fm = request.file_manager
+    user = request.user
+    
     project_name = request.kwargs['project_name']
     project_name, extension = os.path.splitext(project_name)
     if extension == ".zip":
-        func = request.file_manager.export_zipfile
+        func = fm.export_zipfile
         response.content_type = "application/zip"
     else:
         response.content_type = "application/x-tar-gz"
-        func = request.file_manager.export_tarball
-    output = func(request.user, project_name)
+        func = fm.export_tarball
+    
+    project = fm.get_project(user, user, project_name)
+    
+    output = func(user, project)
     def filegen():
         data = output.read(8192)
         while data:
@@ -363,8 +401,12 @@ def export_project(request, response):
 @expose(r'^/preview/at/(?P<path>.+)$')
 def preview_file(request, response):
     fm = request.file_manager
+    user = request.user
+    
     project, path = _split_path(request)
-    file_obj = fm.get_file_object(request.user, project, path)
+    project = fm.get_project(user, user, project)
+    
+    file_obj = fm.get_file_object(user, project, path)
     response.body = str(file_obj.data)
     response.content_type = file_obj.mimetype
     return response()
