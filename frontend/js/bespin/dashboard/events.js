@@ -21,15 +21,20 @@
  *   Bespin Team (bespin@mozilla.com)
  *
  * ***** END LICENSE BLOCK ***** */
- 
-dojo.provide("bespin.cmd.dashboardcommands");
 
-// = Dashboard Commands =
-//
-// This array stores all of the dashboard commands.
+dojo.provide("bespin.dashboard.events");
 
-bespin.cmd.dashboardcommands.Commands = [
-    'help', 'files', 'set', 'projects', 'version', 'bespin', 
-    'import', 'export', 'alias', 'history', 'mkdir', 'newfile',
-    'createproject', 'deleteproject', 'renameproject'
-];
+// ** {{{ Event: bespin:editor:newfile }}} **
+// 
+// Observe a request for a new file to be created
+bespin.subscribe("bespin:editor:newfile", function(event) {
+    var project  = (event) ? event.project : _editSession.project;
+    var newfilename = (event) ? event.newfilename : "new.txt";
+    
+    if (!project) {
+        bespin.publish("bespin:cmdline:showinfo", [{ msg: 'Tell me which project you want the new file inserted.'}]);
+        return;
+    }
+    
+    bespin.util.navigate.editor(project, newfilename);
+});
