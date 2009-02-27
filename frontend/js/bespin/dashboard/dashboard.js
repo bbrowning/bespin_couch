@@ -20,9 +20,8 @@
  * Contributor(s):
  *   Bespin Team (bespin@mozilla.com)
  *
- * ***** END LICENSE BLOCK ***** */ 
+ * ***** END LICENSE BLOCK ***** */
 
-// TODO: We need to get rid of the global stuff here!!!
 dojo.provide("bespin.dashboard.dashboard");
 
 var heightDiff;
@@ -31,6 +30,7 @@ var scene;
 var tree;
 var infoPanel;
 var go = bespin.util.navigate; // short cut static method
+var _commandLine=new bespin.cmd.commandline.Interface(dojo.byId('command'), bespin.cmd.dashboardcommands.Commands);
 
 function sizeCanvas(canvas) {
     if (!heightDiff) {
@@ -38,6 +38,7 @@ function sizeCanvas(canvas) {
     }
     var height = window.innerHeight - heightDiff + 11;
     dojo.attr(canvas, { width: window.innerWidth, height: height });
+    _commandLine.infoResizer();
 }
 
 dojo.connect(window, "resize", function() {
@@ -46,13 +47,13 @@ dojo.connect(window, "resize", function() {
 
 dojo.addOnLoad(function() {
     sizeCanvas(dojo.byId("canvas"));
-    
+
     dojo.forEach(['subheader', 'header'], function(i) { dojo.setSelectable(i, false); })
-    
+
     bespin.displayVersion(); // display the version on the page
 
-    scene = new th.Scene(dojo.byId("canvas"));  
-    
+    scene = new th.Scene(dojo.byId("canvas"));
+
     tree = new th.components.HorizontalTree({ style: {
         backgroundColor: "rgb(76, 74, 65)",
         backgroundColorOdd: "rgb(82, 80, 71)",
@@ -145,8 +146,8 @@ dojo.addOnLoad(function() {
     _server      = new bespin.client.Server();
     _settings    = new bespin.client.settings.Core();
     _files       = new bespin.client.FileSystem();
-    _commandLine = new bespin.cmd.commandline.Interface(dojo.byId('command'), bespin.cmd.dashboardcommands.Commands);
-    
+    //_commandLine = new bespin.cmd.commandline.Interface(dojo.byId('command'), bespin.cmd.dashboardcommands.Commands); - Moved up to in order for infoResizer to work correctly
+
     // Handle jumping to the command line
     dojo.connect(document, "keydown", function(e) {
         var handled = _commandLine.handleCommandLineFocus(e);
@@ -158,6 +159,15 @@ dojo.addOnLoad(function() {
 });
 
 var currentProject;
+
+// After a project is imported or created, do a list
+bespin.subscribe("bespin:project:imported", function(event) {
+    _server.list(null, null, displayProjects); // get projects
+});
+
+bespin.subscribe("bespin:project:set", function(event) {
+    _server.list(null, null, displayProjects); // get projects
+});
 
 function loggedIn(user) {
     _server.list(null, null, displayProjects); // get projects
@@ -242,8 +252,3 @@ function displayProjects(projectItems) {
     projects.list.items = projectItems;
     scene.render();
 }
-
-function refreshProjects() {
-    _server.list(null, null, displayProjects);
-}
-
