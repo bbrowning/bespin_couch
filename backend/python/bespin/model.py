@@ -88,6 +88,16 @@ class BadValue(FSException):
 class LockError(FSException):
     pass
     
+class Connection(Base):
+    __tablename__ = "connections"
+
+    followed_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'), primary_key=True)
+    followed = relation('User', primaryjoin='User.id==Connection.followed_id')
+    following_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'), primary_key=True)
+    following = relation('User', primaryjoin='User.id==Connection.following_id')
+
+    followed_viewable = Column(Boolean, default=False)
+
 class User(Base):
     __tablename__ = "users"
     
@@ -100,6 +110,17 @@ class User(Base):
     quota = Column(Integer, default=10)
     amount_used = Column(Integer, default=0)
     file_location = Column(String(200))
+    everyone_viewable = Column(Boolean, default=False)
+    
+    i_follow = relation(Connection,
+                        primaryjoin=Connection.following_id==id,
+                        secondary=Connection.__table__,
+                        secondaryjoin=id==Connection.followed_id)
+
+    following_me = relation(Connection,
+                            primaryjoin=Connection.followed_id==id,
+                            secondary=Connection.__table__,
+                            secondaryjoin=id==Connection.following_id)
     
     def __init__(self, username, password, email):
         self.username = username
@@ -228,6 +249,45 @@ class User(Base):
         statusinfo = simplejson.loads(statusinfo)
         return statusinfo.get("open", {})
         
+class Group(Base):
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
+    name = Column(String(128))
+    owner_viewable = Column(Boolean, default=False)
+
+    __table_args__ = (UniqueConstraint("owner_id", "name"), {})
+
+class GroupMembership(Base):
+    __tablename__ = "group_memberships"
+
+    group_id = Column(Integer, ForeignKey('groups.id', ondelete='cascade'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'), primary_key=True)
+
+class UserSharing(Base):
+    __tablename__ = "user_sharing"
+
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
+    project_name = Column(String(128))
+    invited_user_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
+    edit = Column(Boolean, default=False)
+    loadany = Column(Boolean, default=False)    
+
+    __table_args__ = (UniqueConstraint("owner_id", "project_name", "invited_user_id"), {})
+
+class GroupSharing(Base):
+    __tablename__ = "group_sharing"
+
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
+    project_name = Column(String(128))
+    invited_group_id = Column(Integer, ForeignKey('groups.id', ondelete='cascade'))
+    edit = Column(Boolean, default=False)
+    loadany = Column(Boolean, default=False)    
+
+    __table_args__ = (UniqueConstraint("owner_id", "project_name", "invited_group_id"), {})
 
 bad_characters = "<>| '\""
 invalid_chars = re.compile(r'[%s]' % bad_characters)
@@ -262,7 +322,70 @@ class UserManager(object):
         """Looks up a user by username. Returns None if the user is not
         found."""
         return self.session.query(User).filter_by(username=username).first()
-            
+        
+    def users_i_follow(self, following_user):
+        """ """
+        return self.session.query(Connection).filter_by(following=following_user).all()
+
+    def users_following_me(self, followed_user):
+        """ """
+        return self.session.query(Connection).filter_by(followed=followed_user).all()
+
+    def follow(self, following_user, followed_user):
+        """ """
+        if (followed_user == following_user):
+            raise ConflictError("You can't follow yourself")
+
+        following_user_name = following_user.username;
+        followed_user_name = followed_user.username;
+        self.session.add(Connection(followed=followed_user, following=following_user))
+        try:
+            self.session.flush()
+        except DBAPIError:
+            raise ConflictError("%s is already following %s" % (following_user_name, followed_user_name))
+
+    def unfollow(self, following_user, followed_user):
+        """ """
+        following_user_name = following_user.username;
+        followed_user_name = followed_user.username;
+        rows = self.session.query(Connection).filter_by(followed=followed_user, following=following_user).delete()
+        if (rows == 0):
+            raise ConflictError("%s is not following %s" % (following_user_name, followed_user_name))
+
+    def get_groups(user):
+        """ """
+        groups = self.session.query(Group).filter_by(owner_id=user.id).all()
+        return groups
+
+    def get_group_members(user, groupname):
+        """ """
+        group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
+        members = self.sesison.query(GroupMember).filter_by(group_id=group.id).all()
+        return members
+
+    def remove_all_group_members(user, groupname):
+        """ """
+        group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
+        members = self.sesison.query(GroupMember).filter_by(group_id=group.id).delete()
+        pass
+
+    def remove_group_members(user, groupname, other_user):
+        """ """
+        group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
+        members = self.sesison.query(GroupMember).filter_by(group_id=group.id, user_id=other_user.id).delete()
+        pass
+
+    def add_group_members(user, groupname, other_user):
+        """ """
+        group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
+        self.session.add(GroupMember(group_id=group.id, user_id=other_user.id))
+        try:
+            self.session.flush()
+        except DBAPIError:
+            raise ConflictError("%s is already following %s" % (following_user_name, followed_user_name))
+        pass
+
+
 class Directory(object):
     def __init__(self, name):
         if not name.endswith("/"):
