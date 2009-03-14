@@ -11,6 +11,7 @@ backend/python/production/libs
 backend/python/production/requirements.txt
 backend/python/production/bootstrap.py
 backend/python/error.txt
+devfiles
 pip-log.txt
 devserver.log*
 setuptools-*
@@ -25,3 +26,4 @@ backend/python/BespinServer.egg-info
 *.tmproj
 ext/
 build/
+man/

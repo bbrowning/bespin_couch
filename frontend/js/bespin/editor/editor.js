@@ -278,7 +278,18 @@ dojo.declare("bespin.editor.DefaultEditorKeyListener", null, {
     onkeydown: function(e) {
         // -- Short cut for IF a command line is installed
         var commandLine = bespin.get('commandLine');
-        if (commandLine && commandLine.handleCommandLineFocus(e)) return false;
+        var quickopen = bespin.get('quickopen');
+        var handled = false;
+        
+        if ( (commandLine && commandLine.handleCommandLineFocus(e)) || (quickopen && quickopen.handleKeys(e))) {
+            handled = true;
+        }
+        
+        if (quickopen && quickopen.handleKeys(e)) {
+            handled = true;
+        }
+        
+        if (handled) return false;
         // -- End of commandLine short cut
 
         var args = { event: e,
@@ -310,8 +321,19 @@ dojo.declare("bespin.editor.DefaultEditorKeyListener", null, {
     onkeypress: function(e) {
         // -- Short cut for IF a command line is installed
         var commandLine = bespin.get('commandLine');
-        if (commandLine && commandLine.handleCommandLineFocus(e)) return false;
-
+        var quickopen = bespin.get('quickopen');
+        var handled = false;
+        
+        if ( (commandLine && commandLine.handleCommandLineFocus(e)) || (quickopen && quickopen.handleKeys(e))) {
+            handled = true;
+        }
+        
+        if (quickopen && quickopen.handleKeys(e)) {
+            handled = true;
+        }
+        
+        if (handled) return false;
+        
         // This is to get around the Firefox bug that happens the first time of jumping between command line and editor
         // Bug https://bugzilla.mozilla.org/show_bug.cgi?id=478686
         if (commandLine && e.charCode == 'j'.charCodeAt() && e.ctrlKey) {
@@ -704,7 +726,7 @@ dojo.declare("bespin.editor.UI", null, {
 
         listener.bindKeyStringSelectable("", Key.PAGE_UP, this.actions.movePageUp);
         listener.bindKeyStringSelectable("", Key.PAGE_DOWN, this.actions.movePageDown);
-
+        
         // Other key bindings can be found in commands themselves.
         // For example, this:
         // listener.bindKeyString("CTRL SHIFT", Key.N, "bespin:editor:newfile");

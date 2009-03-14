@@ -324,6 +324,19 @@ dojo.declare("bespin.client.Server", null, {
         var url = bespin.util.path.combine('/file/close', project, path);
         this.request('POST', url, null, { call: callback });
     },
+    
+    // ** {{{ searchFiles(project, searchstring, callback) }}}
+    //
+    // Search for files within the given project
+    // 
+    // * {{{project}}} is the project to look from
+    // * {{{searchstring}}} to compare files with
+    // * {{{callback}}} fires after the file is closed
+    searchFiles: function(project, searchkey, callback) {
+        var url = bespin.util.path.combine('/file/search', project+'?q='+escape(searchkey));
+        var opts = { call: callback, evalJSON: true, log: "Listing searchfiles for: " + project + ", searchkey: " + searchkey};
+        this.request('GET', url, null, opts);
+    },
 
     // == EDIT ==
 
@@ -457,5 +470,53 @@ dojo.declare("bespin.client.Server", null, {
     
     unsetSetting: function(name, callback) {
         this.request('DELETE', '/settings/' + name, null, { call: (callback || function(){}) });
+    },
+
+    // ** {{{ follows(opts) }}}
+    // Get a list of the users the current user is following
+    followers: function(opts) {
+        this.request('GET', '/network/followers/', null, opts || {});
+    },
+
+    // ** {{{ follows(opts) }}}
+    // Get a list of the users the current user is following
+    follow: function(users, opts) {
+        this.request('POST', '/network/follow/', dojo.toJson(users), opts || {});
+    },
+
+    // ** {{{ follows(opts) }}}
+    // Get a list of the users the current user is following
+    unfollow: function(users, opts) {
+        this.request('POST', '/network/unfollow/', dojo.toJson(users), opts || {});
+    },
+
+    // ** {{{ groupListAll() }}}
+    // Get a list of the users the current user is following
+    groupListAll: function() {
+        this.request('GET', '/group/list/all/', null, opts || {});
+    },
+
+    // ** {{{ groupList() }}}
+    // Get a list of the users the current user is following
+    groupList: function(group) {
+        this.request('GET', '/group/list/' + group + '/', null, opts || {});
+    },
+
+    // ** {{{ groupRemoveAll() }}}
+    // Get a list of the users the current user is following
+    groupRemoveAll: function(group) {
+        this.request('POST', '/group/remove/all/' + group + '/', null, opts || {});
+    },
+
+    // ** {{{ groupAdd() }}}
+    // Get a list of the users the current user is following
+    groupAdd: function(group, users) {
+        this.request('POST', '/group/remove/' + group + '/', dojo.toJson(users), opts || {});
+    },
+
+    // ** {{{ groupRemove() }}}
+    // Get a list of the users the current user is following
+    groupRemove: function(group, users) {
+        this.request('POST', '/group/add/' + group + '/', dojo.toJson(users), opts || {});
     }
 });
