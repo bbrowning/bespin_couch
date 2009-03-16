@@ -22,7 +22,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
  
-dojo.provide("bespin.dashboard.dependencies");
+dojo.provide("bespin.page.dashboard.dependencies");
 
 dojo.require("dojo.cookie"); 
 
@@ -34,7 +34,6 @@ dojo.require("bespin.util.keys");
 dojo.require("bespin.util.navigate");
 dojo.require("bespin.util.path");
 dojo.require("bespin.util.tokenobject");
-dojo.require("bespin.util.clipboard"); 
 dojo.require("bespin.util.urlbar");
 
 dojo.require("bespin.client.filesystem");
@@ -55,6 +54,6 @@ dojo.require("th.borders");
 dojo.require("th.components");
 
 // -- The main dashboard subsystems
-dojo.require("bespin.dashboard.components");
-dojo.require("bespin.dashboard.dashboard");
-dojo.require("bespin.dashboard.events");
+dojo.require("bespin.page.dashboard.components");
+dojo.require("bespin.page.dashboard.events");
+dojo.require("bespin.page.dashboard.init");
