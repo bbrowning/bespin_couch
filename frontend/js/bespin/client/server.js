@@ -572,5 +572,21 @@ dojo.declare("bespin.client.Server", null, {
     // Alter the view setting for a given member
     viewmeSet: function(member, value, opts) {
         this.request('POST', '/viewme/set/' + member + '/' + value + '/', null, opts || {});
+    },
+    
+    // ** {{{ vcs() }}}
+    // Run a Version Control System (VCS) command
+    vcs: function(project, command, opts) {
+        var command_obj = {command: command}
+        this.request('POST', '/vcs/' + project + '/',
+                     dojo.toJson(command_obj),
+                     opts || {});
+    },
+    
+    // ** {{{ setauth() }}}
+    // Sets authentication for a project
+    setauth: function(project, form, opts) {
+        this.request('POST', '/keychain/setauth/' + project + '/',
+                    dojo.formToQuery(form), opts || {});
     }
 });
