@@ -42,6 +42,7 @@ from uuid import uuid4
 import shutil
 import subprocess
 import itertools
+import sqlite3
 
 from path import path as path_obj
 from pathutils import LockError as PULockError, Lock, LockFile
@@ -49,7 +50,7 @@ import pkg_resources
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (Column, PickleType, String, Integer,
                     Boolean, Binary, Table, ForeignKey,
-                    DateTime, func, UniqueConstraint)
+                    DateTime, func, UniqueConstraint, Text)
 from sqlalchemy.orm import relation, deferred, mapper, backref
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm.exc import NoResultFound
@@ -99,6 +100,14 @@ class Connection(Base):
 
     followed_viewable = Column(Boolean, default=False)
 
+class Message(Base):
+    __tablename__ = "messages"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="cascade"))
+    when = Column(DateTime, default=datetime.now)
+    message = Column(Text)
+
 class User(Base):
     __tablename__ = "users"
     
@@ -112,6 +121,7 @@ class User(Base):
     amount_used = Column(Integer, default=0)
     file_location = Column(String(200))
     everyone_viewable = Column(Boolean, default=False)
+    messages = relation(Message, order_by=Message.when, backref="user")
     
     i_follow = relation(Connection,
                         primaryjoin=Connection.following_id==id,
@@ -263,6 +273,11 @@ class User(Base):
         statusinfo = simplejson.loads(statusinfo)
         return statusinfo.get("open", {})
         
+    def publish(self, message_obj):
+        data = simplejson.dumps(message_obj)
+        message = Message(user=self, message=data)
+        self.messages.append(message)
+
 class Group(Base):
     __tablename__ = "groups"
 
@@ -286,6 +301,7 @@ class UserSharing(Base):
     owner_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
     project_name = Column(String(128))
     invited_user_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
+    invited_name = relation(User, primaryjoin=User.id==invited_user_id)
     edit = Column(Boolean, default=False)
     loadany = Column(Boolean, default=False)    
 
@@ -298,13 +314,14 @@ class GroupSharing(Base):
     owner_id = Column(Integer, ForeignKey('users.id', ondelete='cascade'))
     project_name = Column(String(128))
     invited_group_id = Column(Integer, ForeignKey('groups.id', ondelete='cascade'))
+    invited_name = relation(Group, primaryjoin=Group.id==invited_group_id)
     edit = Column(Boolean, default=False)
     loadany = Column(Boolean, default=False)    
 
     __table_args__ = (UniqueConstraint("owner_id", "project_name", "invited_group_id"), {})
 
-bad_characters = "<>| '\"/"
-invalid_chars = re.compile(r'[%s]' % bad_characters)
+bad_characters = r'\W'
+invalid_chars = re.compile(r'[%s]' % bad_characters, re.UNICODE)
 
 def _check_identifiers(kind, value):
     if invalid_chars.search(value):
@@ -345,15 +362,21 @@ class UserManager(object):
         return self.session.query(User).filter_by(username=username).first()
         
     def users_i_follow(self, following_user):
-        """ """
+        """Retrieve a list of the users that someone follows.
+        
+        Note this currently returns a list of Connections, we will probably
+        change this to return a list of Users soon."""
         return self.session.query(Connection).filter_by(following=following_user).all()
 
     def users_following_me(self, followed_user):
-        """ """
+        """Retrieve a list of the users that someone is following
+        
+        Note this currently returns a list of Connections, we will probably
+        change this to return a list of Users soon."""
         return self.session.query(Connection).filter_by(followed=followed_user).all()
 
     def follow(self, following_user, followed_user):
-        """ """
+        """Add a follow connection between 2 users"""
         if (followed_user == following_user):
             raise ConflictError("You can't follow yourself")
 
@@ -366,7 +389,7 @@ class UserManager(object):
             raise ConflictError("%s is already following %s" % (following_user_name, followed_user_name))
 
     def unfollow(self, following_user, followed_user):
-        """ """
+        """Remove a follow connection between 2 users"""
         following_user_name = following_user.username;
         followed_user_name = followed_user.username;
         rows = self.session.query(Connection).filter_by(followed=followed_user, following=following_user).delete()
@@ -374,30 +397,39 @@ class UserManager(object):
             raise ConflictError("%s is not following %s" % (following_user_name, followed_user_name))
 
     def get_groups(self, user):
-        """ """
+        """Retrieve a list of the groups created by a given user.
+        
+        Note this currently returns a list of Groups, we will probably change
+        this to return a list of group names in the future"""
         groups = self.session.query(Group).filter_by(owner_id=user.id).all()
         return groups
 
     def get_group_members(self, user, groupname):
-        """ """
+        """Retrieve a list of the members of a given users group"""
         group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
         members = self.sesison.query(GroupMember).filter_by(group_id=group.id).all()
         return members
 
     def remove_all_group_members(self, user, groupname):
-        """ """
+        """Remove all the members of a given group
+
+        TODO: Surely this should simply delete the group???"""
         group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
         members = self.sesison.query(GroupMember).filter_by(group_id=group.id).delete()
         pass
 
     def remove_group_members(self, user, groupname, other_user):
-        """ """
+        """Remove members from a given users group.
+
+        TODO: check on how this works"""
         group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
         members = self.sesison.query(GroupMember).filter_by(group_id=group.id, user_id=other_user.id).delete()
         pass
 
     def add_group_members(self, user, groupname, other_user):
-        """ """
+        """Add members from a given users group.
+
+        TODO: check on how this works"""
         group = self.session.query(Group).filter_by(owner_id=user.id, name=groupname).one()
         self.session.add(GroupMember(group_id=group.id, user_id=other_user.id))
         try:
@@ -406,27 +438,86 @@ class UserManager(object):
             raise ConflictError("%s is already following %s" % (following_user_name, followed_user_name))
         pass
 
-    def get_sharing(project, member=None):
+    def get_sharing(self, user, project=None, member=None):
+        """Retrieve a list of the shares made by a given user"""
+        shares = []
+        def add_shares(sharing_list):
+            for sharing in sharing_list:
+                shares.append({
+                    'owner':user.username,
+                    'project':sharing.project_name,
+                    'type':'user',
+                    'recipient':sharing.invited_name,
+                    'edit':sharing.edit,
+                    'loadany':sharing.loadany
+                })
+        if member != None:
+            if _is_group(user, member):
+                group = _get_group(member)
+                list = self.session.query(GroupSharing) \
+                    .filter_by(owner_id=user.id, project_name=project.name, invited_group_id=group.id) \
+                    .all()
+                add_shares(list)
+            else:
+                user = get_user(member)
+                list = self.session.query(GroupSharing) \
+                    .filter_by(owner_id=user.id, project_name=project.name, invited_user_id=user.id) \
+                    .all()
+                add_shares(list)
+            pass
+        elif project != None:
+            list = self.session.query(UserSharing) \
+                    .filter_by(owner_id=user.id, project_name=project.name) \
+                    .all()
+            add_shares(list)
+            list = self.session.query(GroupSharing) \
+                    .filter_by(owner_id=user.id, project_name=project.name) \
+                    .all()
+            add_shares(list)
+        else:
+            list = self.session.query(UserSharing) \
+                    .filter_by(owner_id=user.id) \
+                    .all()
+            add_shares(list)
+            list = self.session.query(GroupSharing) \
+                    .filter_by(owner_id=user.id) \
+                    .all()
+            add_shares(list)
         return [ "Not implemented", project, member ]
 
-    def remove_sharing(project, member=None):
+    def remove_sharing(self, user, project, member=None):
         return [ "Not implemented", project, member ]
 
-    def add_sharing(project, member, options):
+    def add_sharing(self, user, project, member, options):
         return [ "Not implemented", project, member, options ]
 
-    def get_viewme(member=None):
+    def get_viewme(self, user, member=None):
         return [ "Not implemented", member ]
 
-    def set_viewme(member, value):
+    def set_viewme(self, user, member, value):
         return [ "Not implemented", member, value ]
-
+        
+    def pop_messages(self, user):
+        messages = []
+        for message in user.messages:
+            messages.append(message.message)
+            self.session.delete(message)
+        return messages
 
 class Directory(object):
-    def __init__(self, name):
+    def __init__(self, project, name):
+        if "../" in name:
+            raise BadValue("Relative directories are not allowed")
+        
+        # chop off any leading slashes
+        while name and name.startswith("/"):
+            name = name[1:]
+        
         if not name.endswith("/"):
             name += "/"
         self.name = name
+        
+        self.location = project.location / name
     
     @property
     def short_name(self):
@@ -589,6 +680,82 @@ def _get_space_used(directory):
         total += f.size
     return total
 
+class ProjectMetadata(dict):
+    """Provides access to Bespin-specific project information.
+    This metadata is stored in an sqlite database in the user's
+    metadata area."""
+    
+    def __init__(self, project):
+        self.project_name = project.name
+        self.project_location = project.location
+        self.filename = self.project_location / ".." / \
+                        (".%s_metadata" % self.project_name)
+        self._connection = None
+        
+    @property
+    def connection(self):
+        """Opens the database. This is generally done automatically
+        by the methods that use the DB."""
+        if self._connection:
+            return self._connection
+            
+        is_new = not self.filename.exists()
+        
+        conn = sqlite3.connect(self.filename)
+        self._connection = conn
+        
+        if is_new:
+            c = conn.cursor()
+            c.execute('''create table keyvalue (
+    key text primary key,
+    value text
+)''')
+            conn.commit()
+            c.close()
+        return conn
+    
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+        
+    def __getitem__(self, key):
+        conn = self.connection
+        c = conn.cursor()
+        c.execute("""select value from keyvalue where key=?""", (key,))
+        value = None
+        for row in c:
+            value = row[0]
+        c.close()
+        if value is None:
+            raise KeyError("%s not found" % key)
+        return value
+    
+    def __setitem__(self, key, value):
+        conn = self.connection
+        c = conn.cursor()
+        c.execute("delete from keyvalue where key=?", (key,))
+        c.execute("""insert into keyvalue (key, value) values (?, ?) """,
+                    (key, value))
+        conn.commit()
+        c.close()
+    
+    def __delitem__(self, key):
+        conn = self.connection
+        c = conn.cursor()
+        c.execute("delete from keyvalue where key=?", (key,))
+        conn.commit()
+        c.close()
+        
+    def close(self):
+        """Close the metadata database."""
+        if self._connection:
+            self._connection.close()
+            self._connection = None
+        
+    def __del__(self):
+        self.close()
 
 class Project(object):
     """Provides access to the files in a project."""
@@ -599,8 +766,20 @@ class Project(object):
         self.location = location
     
     @property
+    def metadata(self):
+        try:
+            return self._metadata
+        except AttributeError:
+            self._metadata = ProjectMetadata(self)
+            return self._metadata
+    
+    @property
     def short_name(self):
         return self.name + "/"
+    
+    @property
+    def full_name(self):
+        return self.owner.uuid + "/" + self.name
             
     def __repr__(self):
         return "Project(name=%s)" % (self.name)
@@ -681,6 +860,8 @@ class Project(object):
         """
         log.debug("Installing template %s for user %s as project %s",
                 template, self.owner, self.name)
+        if "/" in template or "." in template:
+            raise BadValue("Template names cannot include '/' or '.'")
         found = False
         for p in config.c.template_path:
             source_dir = path_obj(p) / template
@@ -734,7 +915,7 @@ class Project(object):
         result = []
         for name in names:
             if name.isdir():
-                result.append(Directory(self.location.relpathto(name)))
+                result.append(Directory(self, self.location.relpathto(name)))
             else:
                 result.append(File(self, self.location.relpathto(name)))
         
@@ -766,12 +947,13 @@ class Project(object):
         If the path is empty, the project will be deleted."""
         # deleting the project?
         if not path or path.endswith("/"):
+            dir_obj = Directory(self, path)
             if not path:
                 location = self.location
                 if not location.exists():
                     raise FileNotFound("Project %s does not exist" % (self.name))
             else:
-                location = self.location / path
+                location = dir_obj.location
                 if not location.exists():
                     raise FileNotFound("Directory %s in project %s does not exist" %
                             (path, self.name))
@@ -913,6 +1095,7 @@ class Project(object):
     def rename(self, new_name):
         """Renames this project to new_name, assuming there is
         not already another project with that name."""
+        _check_identifiers("Project name", new_name)
         old_location = self.location
         new_location = self.location.parent / new_name
         if new_location.exists():

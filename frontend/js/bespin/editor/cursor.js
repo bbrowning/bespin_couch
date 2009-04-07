@@ -96,12 +96,6 @@ dojo.declare("bespin.editor.CursorManager", null, {
         return modelPos;
     },
     
-    getModelSelection: function(selection) {
-        selection.startPos = this.getModelPosition(selection.startPos);
-        selection.endPos = this.getModelPosition(selection.endPos);
-        return selection;
-    },
-
     getCharacterLength: function(character, column) {
         if (character.length > 1) return;
         if (column == undefined) column = this.position.col;
@@ -136,7 +130,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
     // if the string between <from> and <to> is "  ab     " this will give you 2, as
     // there are 2 white spaces together from the beginning
     getContinuousSpaceCount: function(from, to, rowIndex) {
-        rowIndex = rowIndex || this.position.row;
+        rowIndex = rowIndex || this.position.row;
         var settings = bespin.get('settings');
         var row = this.editor.model.getRowArray(rowIndex);
         var delta = (from < to ? 1 : -1);
@@ -244,7 +238,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
             this.virtualCol = Math.max(oldPos.col, oldVirualCol);
         }
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     moveLeft: function() {
@@ -255,7 +249,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
             var freeSpaces = this.getContinuousSpaceCount(oldPos.col, this.getNextTablevelLeft());
             if (freeSpaces == this.editor.getTabSize()) {
                 this.moveCursor({ col: oldPos.col - freeSpaces });  
-                return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+                return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
             } // else {
             //  this case is handled by the code following
             //}
@@ -269,7 +263,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
             this.moveCursor({ row: oldPos.row, col: Math.max(0, oldPos.col - 1) });
         }
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     moveRight: function(newStuffInsert) {
@@ -279,8 +273,8 @@ dojo.declare("bespin.editor.CursorManager", null, {
         if ((settings && settings.isSettingOn('smartmove')) && !newStuffInsert) {
             var freeSpaces = this.getContinuousSpaceCount(oldPos.col, this.getNextTablevelRight());                       
             if (freeSpaces == this.editor.getTabSize()) {
-                this.moveCursor({ col: oldPos.col + freeSpaces })  
-                return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+                this.moveCursor({ col: oldPos.col + freeSpaces });
+                return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
             }// else {
             //  this case is handled by the code following
             //}
@@ -295,7 +289,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
         }
 
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     movePageUp: function() {
@@ -303,7 +297,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
 
         this.moveCursor({ row: Math.max(this.editor.ui.firstVisibleRow - this.editor.ui.visibleRows, 0) });
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     movePageDown: function() {
@@ -311,7 +305,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
 
         this.moveCursor({ row: Math.min(this.position.row + this.editor.ui.visibleRows, this.editor.model.getRowCount() - 1) });
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     smartMoveLeft: function() {
@@ -361,7 +355,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
             this.moveCursor({ col: newcol });
         }
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     smartMoveRight: function() {
@@ -413,7 +407,7 @@ dojo.declare("bespin.editor.CursorManager", null, {
             if (newcol != -1) this.moveCursor({ col: newcol });
         }
 
-        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) }
+        return { oldPos: oldPos, newPos: bespin.editor.utils.copyPos(this.position) };
     },
 
     moveCursor: function(newpos) {
