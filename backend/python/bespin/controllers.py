@@ -519,7 +519,6 @@ def _lookup_usernames(user_manager, usernames):
     def lookup_username(username):
         user = user_manager.get_user(username)
         if user == None:
-            # TODO: XSS injection hole here, we should have some policy
             raise BadRequest("Username not found: %s" % username)
         return user
     return map(lookup_username, usernames)
