@@ -672,33 +672,24 @@ dojo.declare("bespin.editor.Actions", null, {
         this.cursorManager.moveCursor({ row: saveCursorRow });
     },
 
-    selectionUpperCase: function(args) {
-        args.stringCase = 'u';
-        return this.selectionChangeCase(args);
-    },
-
-    selectionLowerCase: function(args) {
-        args.stringCase = 'l';
-        return this.selectionChangeCase(args);
-    },
-
     selectionChangeCase: function(args) {
+		console.log('selectionChangeCase Fired!');
         if (this.editor.selection) {
             if (!args.selectionObject) {
                 args.selectionObject = this.editor.getSelection();
             }
 
             var selection = this.model.getChunk(args.selectionObject);
-			var stringArray = selection.split("\n");
-			for (i in stringArray) {
-				if (args.stringCase ==="l") {
-					stringArray[i] = stringArray[i].toLowerCase();
-				}
-				else {
-					stringArray[i] = stringArray[i].toUpperCase();
-				}
-			}
-			var outText = stringArray.join("\n");
+            var stringArray = selection.split("\n");
+            for (i in stringArray) {
+                if (args.stringCase ==="l") {
+                    stringArray[i] = stringArray[i].toLowerCase();
+                }
+                else {
+                    stringArray[i] = stringArray[i].toUpperCase();
+                }
+            }
+            var outText = stringArray.join("\n");            
 
             this.model.deleteChunk(args.selectionObject);
             this.model.insertChunk(args.selectionObject.startModelPos, outText);
@@ -706,7 +697,7 @@ dojo.declare("bespin.editor.Actions", null, {
 
             args.action = "selectionChangeCase";
             var redoOperation = args;
-            var undoArgs = { action: "undoSelectionChangeCase", selectionObject: args.selectionObject, text: selection };
+            var undoArgs = { action: "undoSelectionChangeCase", selectionObject: args.selectionObject, text: selection, stringCase: args.stringCase };
             var undoOperation = undoArgs;
             this.editor.undoManager.addUndoOperation(new bespin.editor.UndoItem(undoOperation, redoOperation));
         }
@@ -717,11 +708,11 @@ dojo.declare("bespin.editor.Actions", null, {
         this.model.insertChunk(args.selectionObject.startModelPos, args.text);
         this.select(args.selectionObject);
 
-		args.action = "undoSelectionChangeCase";
-		var redoOperation = args;
-		var undoArgs = { action: "selectionChangeCase", selectionObject: args.selectionObject, text: args.text };
-		var undoOperation = undoArgs;
-		this.editor.undoManager.addUndoOperation(new bespin.editor.UndoItem(undoOperation, redoOperation));
+        args.action = "undoSelectionChangeCase";
+        var redoOperation = args;
+        var undoArgs = { action: "selectionChangeCase", selectionObject: args.selectionObject, stringCase: args.stringCase};
+        var undoOperation = undoArgs;
+        this.editor.undoManager.addUndoOperation(new bespin.editor.UndoItem(undoOperation, redoOperation));
     },
 
     repaint: function() {
