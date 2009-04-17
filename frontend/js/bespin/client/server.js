@@ -556,6 +556,12 @@ dojo.declare("bespin.client.Server", null, {
         this.request('GET', '/group/list/' + group + '/', null, opts || {});
     },
 
+    // ** {{{ groupRemove() }}}
+    // Get a list of the users the current user is following
+    groupRemove: function(group, users, opts) {
+        this.request('POST', '/group/remove/' + group + '/', dojo.toJson(users), opts || {});
+    },
+
     // ** {{{ groupRemoveAll() }}}
     // Get a list of the users the current user is following
     groupRemoveAll: function(group, opts) {
@@ -565,12 +571,6 @@ dojo.declare("bespin.client.Server", null, {
     // ** {{{ groupAdd() }}}
     // Get a list of the users the current user is following
     groupAdd: function(group, users, opts) {
-        this.request('POST', '/group/remove/' + group + '/', dojo.toJson(users), opts || {});
-    },
-
-    // ** {{{ groupRemove() }}}
-    // Get a list of the users the current user is following
-    groupRemove: function(group, users, opts) {
         this.request('POST', '/group/add/' + group + '/', dojo.toJson(users), opts || {});
     },
 
