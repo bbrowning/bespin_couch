@@ -264,22 +264,13 @@ bespin.vcs.commands.addCommand({
 bespin.vcs.commands.addCommand({
     name: 'diff',
     preview: 'Display the differences in the checkout out files',
+    takes: ['*'],
+    completeText: 'Use the current file, add -a for all files or add filenames',
+    description: 'Without any options, the vcs diff command will diff the currently selected file against the repository copy. If you pass in -a, the command will diff <em>all</em> files. Finally, you can list files to diff individually.',
     // ** {{{execute}}} **
-    execute: function(self) {
-        var project;
-
-        bespin.withComponent('editSession', function(editSession) {
-            project = editSession.project;
-        });
-
-        if (!project) {
-            self.showInfo("You need to pass in a project");
-            return;
-        }
-        bespin.get('server').vcs(project, 
-                                {command: ["diff"]}, 
-                                bespin.vcs.standardHandler);
-    }                                
+    execute: function(self, args) {
+        bespin.vcs._performVCSCommandWithFiles("diff", self, args);
+    }
 });
 
 // ** {{{Command: diff}}} **
@@ -464,7 +455,20 @@ bespin.vcs.commands.addCommand({
 // ** {{{ Event: bespin:vcs:response }}} **
 // Handle a response from a version control system command
 bespin.subscribe("vcs:response", function(event) {
-    bespin.util.webpieces.showContentOverlay(event.output, {pre: true});
+    var output = event.output;
+    
+    // if the output is all whitespace, we should display something
+    // nicer
+    if (/^\s*$/.exec(output)) {
+        output = "(Successful command with no visible output)";
+    }
+    
+    bespin.util.webpieces.showContentOverlay("<h2>vcs " 
+                    + event.command 
+                    + " output</h2><pre>" 
+                    + output 
+                    + "</pre>");
+                    
     if (event.command) {
         var command = event.command;
         if (command == "clone") {
@@ -483,6 +487,7 @@ bespin.subscribe("vcs:error", function(event) {
 // This is the top level command that contains all of the other commands.
 bespin.cmd.commands.add({
     name: 'vcs',
+    takes: ['*'],
     preview: 'run a version control command',
     subcommands: bespin.vcs.commands
 });
