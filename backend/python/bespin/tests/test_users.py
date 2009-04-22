@@ -122,8 +122,8 @@ def test_register_and_verify_user():
     assert data['quota'] == 15728640
     assert 'amountUsed' in data
     
-    resp = app.get("/file/at/BespinSettings/config.js")
-    app.post("/file/close/BespinSettings/config.js")
+    resp = app.get("/file/at/BespinSettings/config")
+    app.post("/file/close/BespinSettings/config")
     
 def test_logout():
     s, user_manager = _get_user_manager(True)
@@ -225,3 +225,19 @@ def test_messages_sent_from_server_to_user():
     resp = app.post("/messages/")
     data = simplejson.loads(resp.body)
     assert len(data) == 0
+    
+def test_get_users_settings():
+    _clear_db()
+    app = controllers.make_app()
+    app = TestApp(app)
+    resp = app.post("/register/new/macgyver",
+        dict(password="foo", email="macgyver@ducttape.macgyver"))
+    resp = app.put("/file/at/BespinSettings/settings", """
+vcsuser Mack Gyver <gyver@mac.com>
+
+""")
+    s, user_manager = _get_user_manager()
+    macgyver = user_manager.get_user("macgyver")
+    settings = macgyver.get_settings()
+    assert settings == dict(vcsuser="Mack Gyver <gyver@mac.com>")
+    
