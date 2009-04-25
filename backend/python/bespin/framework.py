@@ -28,8 +28,11 @@
 
 from urlrelay import url
 from webob import Request, Response
+import logging
 
 from bespin import model, config, API_VERSION
+
+log = logging.getLogger("bespin.framework")
 
 class BadRequest(Exception):
     pass
@@ -50,7 +53,8 @@ class BespinRequest(Request):
         self.username = environ.get('REMOTE_USER')
         self.user_manager = self.environ['user_manager']
         self.kwargs = environ.get('wsgiorg.routing_args')[1]
-        
+        self.session_token = environ.get("HTTP_DOMAIN_TOKEN")
+
     @property
     def user(self):
         if self._user:
@@ -59,7 +63,7 @@ class BespinRequest(Request):
             self._user = self.user_manager.get_user(self.username)
             return self._user
         return None
-        
+
 class BespinResponse(Response):
     def __init__(self, environ, start_request, **kw):
         super(BespinResponse, self).__init__(**kw)
@@ -79,7 +83,7 @@ def _add_base_headers(response):
     response.headers['Cache-Control'] = "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, private"
     response.headers['Pragma'] = "no-cache"
 
-def expose(url_pattern, method=None, auth=True):
+def expose(url_pattern, method=None, auth=True, skip_token_check=False):
     """Expose this function to the world, matching the given URL pattern
     and, optionally, HTTP method. By default, the user is required to
     be authenticated. If auth is False, the user is not required to be
@@ -91,8 +95,23 @@ def expose(url_pattern, method=None, auth=True):
                 response = Response(status='401')
                 _add_base_headers(response)
                 return response(environ, start_response)
+
             request = BespinRequest(environ)
             response = BespinResponse(environ, start_response)
+            skip_test = environ.get("BespinTestApp")
+
+            if not skip_token_check and skip_test != "True":
+                query_token = request.cookies.get("Domain-Token")
+                reply_token = environ.get("HTTP_DOMAIN_TOKEN")
+
+                if query_token is None or reply_token != query_token:
+                    print environ
+                    print("request.url=%s" % request.url)
+                    print("request.cookies['Domain-Token']=%s" % query_token)
+                    print("environ['HTTP_DOMAIN_TOKEN']=%s" % reply_token)
+                    print("ERROR! The anti CSRF attack trip wire just went off. If you see this message and no-one is hacking you, please tell bespin-core@googlegroups.com")
+                    #response.error("401 Not Authorized", "CSRF Token Error")
+
             user = request.user
             _add_base_headers(response)
             try:
