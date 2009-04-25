@@ -63,9 +63,9 @@ Contributor(s):
 
 options(
     version=Bunch(
-        number="0.1.6",
-        name="Nonchalant Nimbus+",
-        api="3"
+        number="0.2.0",
+        name="Sassy Cirrus",
+        api="4"
     ),
     build_top=path("build"),
     build_dir=lambda: options.build_top / "BespinServer",
@@ -565,7 +565,7 @@ def editbespin(options):
     
     config.set_profile("dev")
     config.activate_profile()
-    session = config.c.sessionmaker(bind=config.c.dbengine)
+    session = config.c.session_factory()
     try:
         user = session.query(model.User).filter_by(username=user).one()
     except NoResultFound:
@@ -599,19 +599,27 @@ def seeddb():
     from bespin.model import User, Connection, UserManager
     config.set_profile("dev")
     config.activate_profile()
-    session = config.c.sessionmaker(bind=config.c.dbengine)
+    session = config.c.session_factory()
     user_manager = UserManager(session)
 
     def get_user(name):
         user = user_manager.get_user(name)
         if user == None:
-            user = user_manager.create_user(name, name, name)
+            user = user_manager.create_user(name, name, name + "@foo.com")
+            session.commit()
+            info("Created user called '" + name + "'")
+        try:
+            model.get_project(user, user, "BespinSettings")
+        except:
+            settings = model.get_project(user, user, "BespinSettings", create=True)
+            settings.install_template('usertemplate')
+            info("Created BespinSettings project for '" + name + "'")
         return user
 
     # Seriously there is something wrong with my ego today ;-)
     bgalbraith = get_user("bgalbraith")
     kdangoor = get_user("kdangoor")
-    dalmaer = get_user("dalmaer")
+    dalmaer = get_user("d")
     mattb = get_user("mattb")
     zuck = get_user("zuck")
     tom = get_user("tom")
@@ -628,10 +636,11 @@ def seeddb():
 
     jproject = model.get_project(j, j, "SampleProject", create=True)
 
-    user_manager.add_sharing(j, jproject, "bgalbraith", edit=True)
-    user_manager.add_sharing(j, jproject, "kdangoor", edit=True)
-    user_manager.add_sharing(j, jproject, "dalmaer", edit=True)
-    user_manager.add_sharing(j, jproject, "mattb", edit=False)
-    user_manager.add_sharing(j, jproject, "zuck", edit=False)
-    user_manager.add_sharing(j, jproject, "tom", edit=False)
-    user_manager.add_sharing(j, jproject, "ev", edit=False)
+    user_manager.add_sharing(j, jproject, bgalbraith, edit=True)
+    user_manager.add_sharing(j, jproject, kdangoor, edit=True)
+    user_manager.add_sharing(j, jproject, dalmaer, edit=True)
+    user_manager.add_sharing(j, jproject, mattb, edit=False)
+    user_manager.add_sharing(j, jproject, zuck, edit=False)
+    user_manager.add_sharing(j, jproject, tom, edit=False)
+    user_manager.add_sharing(j, jproject, ev, edit=False)
+

@@ -34,7 +34,7 @@ from datetime import datetime, timedelta
 import shutil
 from urllib import urlencode
 
-from webtest import TestApp
+from __init__ import BespinTestApp
 import simplejson
 from path import path
 
@@ -56,7 +56,7 @@ def setup_module(module):
     global app
     config.set_profile('test')
     app = controllers.make_app()
-    app = TestApp(app)
+    app = BespinTestApp(app)
     
 def _init_data():
     global macgyver, someone_else, murdoc
@@ -71,7 +71,7 @@ def _init_data():
     
     model.Base.metadata.drop_all(bind=config.c.dbengine)
     model.Base.metadata.create_all(bind=config.c.dbengine)
-    s = config.c.sessionmaker(bind=config.c.dbengine)
+    s = config.c.session_factory()
     
     user_manager = model.UserManager(s)
     someone_else = user_manager.create_user("SomeoneElse", "", "someone@else.com")
@@ -792,4 +792,15 @@ def test_search_from_the_web():
     
     # illegal limits are turned into the default
     resp = app.get("/file/search/bigmac?limit=foo")
+    
+def test_list_all_files():
+    _init_data()
+    bigmac = get_project(macgyver, macgyver, "bigmac", create=True)
+    bigmac.save_file("foo/bar/baz.txt", "Text file 1\n")
+    bigmac.save_file("README.txt", "Another file\n")
+    bigmac.save_file("bespin/noodle.py", "# A python file\n")
+    resp = app.get("/file/list_all/bigmac/")
+    assert resp.content_type == "application/json"
+    data = simplejson.loads(resp.body)
+    assert len(data) == 3
     

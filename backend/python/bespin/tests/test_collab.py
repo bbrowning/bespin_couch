@@ -29,10 +29,12 @@
 #from webtest import TestApp
 #import simplejson
 
-from webtest import TestApp
 import simplejson
 from bespin import config, controllers, model
 from bespin.model import get_project, File, Project, User, Connection, UserManager
+
+from nose.tools import assert_equals
+from __init__ import BespinTestApp
 
 session = None
 user_manager = None
@@ -58,7 +60,7 @@ def _reset():
     fsroot.makedirs()
 
     global session
-    session = config.c.sessionmaker(bind=config.c.dbengine)
+    session = config.c.session_factory()
     num_users = session.query(User).count()
     assert num_users == 0
     session.commit()
@@ -80,7 +82,7 @@ def _reset():
 
     global app
     app = controllers.make_app()
-    app = TestApp(app)
+    app = BespinTestApp(app)
     app.post("/register/login/joe", dict(password="joe"))
 
 def _followed_names(connections):
@@ -147,7 +149,7 @@ def test_groups():
     assert _group_names(user_manager.get_groups(joe)) == set([ "group" ])
 
 # Group tests
-def test_groups_with_app():
+def _test_groups_with_app():
     _reset()
 
     assert len(user_manager.get_groups(joe)) == 1
@@ -158,7 +160,7 @@ def test_groups_with_app():
     homies = user_manager.get_group(joe, "homies", raise_on_not_found=True)
 
     assert _group_names(user_manager.get_groups(joe)) == set([ "homies", "group" ])
-    assert _group_names(user_manager.get_groups(joe, mattb)) == set([ "homies" ])
+    assert_equals(_group_names(user_manager.get_groups(joe, mattb)), set([ "homies" ]))
     assert _group_member_names(user_manager.get_group_members(homies)) == set([ "mattb" ])
 
     app.post("/group/add/homies/", '["zuck", "tom", "ev"]')

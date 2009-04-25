@@ -275,6 +275,21 @@ class User(Base):
         data = simplejson.dumps(message_obj)
         message = Message(user=self, message=data)
         self.messages.append(message)
+        
+    def get_settings(self):
+        """Load a user's settings from BespinSettings/settings.
+        Returns a dictionary."""
+        location = self.get_location()
+        settings_file = location / "BespinSettings" / "settings"
+        if not settings_file.exists():
+            return {}
+        settings = {}
+        for line in settings_file.lines(retain=False):
+            info = line.split(" ", 1)
+            if len(info) != 2:
+                continue
+            settings[info[0]] = info[1]
+        return settings
 
 class Group(Base):
     __tablename__ = "groups"
@@ -415,6 +430,7 @@ class UserManager(object):
 
         project = get_project(user, user, "SampleProject", create=True)
         project.install_template()
+        config.c.stats.incr("users")
         return user
 
     def get_user(self, username):
@@ -1027,7 +1043,18 @@ class ProjectMetadata(dict):
         result = [item[0] for item in rs]
         c.close()
         return result
-    
+        
+    def get_file_list(self):
+        """Return a list of all files."""
+        conn = self.connection
+        c = conn.cursor()
+        rs = c.execute(
+            "SELECT filename FROM search_cache"
+        )
+        result = [item[0] for item in rs]
+        c.close()
+        return result
+        
     ######
     #
     # Dictionary methods for the key/value store
@@ -1161,6 +1188,7 @@ class Project(object):
         else:
             size_delta = saved_size
             self.metadata.cache_add(destpath)
+            config.c.stats.incr("files")
         file.save(contents)
         self.owner.amount_used += size_delta
         return file
@@ -1297,6 +1325,7 @@ class Project(object):
                 self.metadata.cache_delete(path, True)
                 
             location.rmtree()
+            config.c.stats.decr("projects")
             self.owner.amount_used -= space_used
         else:
             file_obj = File(self, path)
@@ -1313,6 +1342,7 @@ class Project(object):
             
             self.owner.amount_used -= file_obj.saved_size
             file_obj.location.remove()
+            config.c.stats.decr("files")
             self.metadata.cache_delete(path)
 
     def import_tarball(self, filename, file_obj):
@@ -1580,9 +1610,9 @@ def get_project(user, owner, project_name, create=False, clean=False, user_manag
         log.debug("Creating new project %s", project_name)
         location.makedirs()
         project = ProjectView(user, owner, project_name, location)
+        config.c.stats.incr("projects")
     return project
 
-        
 def _find_common_base(member_names):
     base = None
     base_len = None

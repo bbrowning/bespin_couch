@@ -104,6 +104,11 @@ dojo.declare("bespin.client.Server", null, {
                 }
             };
             xhr.open(method, this.SERVER_BASE_URL + url, true); // url must have leading /
+            if (!server.token) {
+                server.token = server._randomPassword();
+            }
+            dojo.cookie("Domain-Token", server.token);
+            xhr.setRequestHeader("Domain-Token", server.token);
             xhr.setRequestHeader("Content-Type", 'application/x-www-form-urlencoded');
             if (options.headers) {
                 for (var key in options.headers) {
@@ -125,6 +130,16 @@ dojo.declare("bespin.client.Server", null, {
         }
     },
     
+    _randomPassword: function() {
+        chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        pass = "";
+        for (var x = 0; x < 16; x++) {
+            var charIndex = Math.floor(Math.random() * chars.length);
+            pass += chars.charAt(charIndex);
+        }
+        return pass;
+    },
+
     // ** {{{ asyncStarted() }}}
     //
     // Keeps track of jobs that are asynchronous on the server, so
@@ -207,10 +222,10 @@ dojo.declare("bespin.client.Server", null, {
     // 
     // * {{{onSuccess}}} fires after the user attempt
     // * {{{notloggedin}}} fires if the user isn't logged in
-    currentuser: function(onSuccess, notloggedin) {
+    currentuser: function(whenLoggedIn, whenNotloggedin) {
         var url = "/register/userinfo/";
         return this.request('GET', url, null, 
-                { onSuccess: onSuccess, on401: notloggedin, evalJSON: true });
+                { onSuccess: whenLoggedIn, on401: whenNotloggedin, evalJSON: true });
     },
 
     // == FILES ==
@@ -525,108 +540,6 @@ dojo.declare("bespin.client.Server", null, {
     
     unsetSetting: function(name, onSuccess) {
         this.request('DELETE', '/settings/' + name, null, { onSuccess: (onSuccess || function(){}) });
-    },
-
-    // ** {{{ follows(opts) }}}
-    // Get a list of the users the current user is following
-    followers: function(opts) {
-        this.request('GET', '/network/followers/', null, opts || {});
-    },
-
-    // ** {{{ follows(opts) }}}
-    // Get a list of the users the current user is following
-    follow: function(users, opts) {
-        this.request('POST', '/network/follow/', dojo.toJson(users), opts || {});
-    },
-
-    // ** {{{ follows(opts) }}}
-    // Get a list of the users the current user is following
-    unfollow: function(users, opts) {
-        this.request('POST', '/network/unfollow/', dojo.toJson(users), opts || {});
-    },
-
-    // ** {{{ groupListAll() }}}
-    // Get a list of the users the current user is following
-    groupListAll: function(opts) {
-        this.request('GET', '/group/list/all/', null, opts || {});
-    },
-
-    // ** {{{ groupList() }}}
-    // Get a list of the users the current user is following
-    groupList: function(group, opts) {
-        this.request('GET', '/group/list/' + group + '/', null, opts || {});
-    },
-
-    // ** {{{ groupRemove() }}}
-    // Get a list of the users the current user is following
-    groupRemove: function(group, users, opts) {
-        this.request('POST', '/group/remove/' + group + '/', dojo.toJson(users), opts || {});
-    },
-
-    // ** {{{ groupRemoveAll() }}}
-    // Get a list of the users the current user is following
-    groupRemoveAll: function(group, opts) {
-        this.request('POST', '/group/remove/all/' + group + '/', null, opts || {});
-    },
-
-    // ** {{{ groupAdd() }}}
-    // Get a list of the users the current user is following
-    groupAdd: function(group, users, opts) {
-        this.request('POST', '/group/add/' + group + '/', dojo.toJson(users), opts || {});
-    },
-
-    // ** {{{ shareListAll() }}}
-    // List all project shares
-    shareListAll: function(opts) {
-        this.request('GET', '/share/list/all/', null, opts || {});
-    },
-
-    // ** {{{ shareListProject() }}}
-    // List sharing for a given project
-    shareListProject: function(project, opts) {
-        this.request('GET', '/share/list/' + project + '/', null, opts || {});
-    },
-
-    // ** {{{ shareListProjectMember() }}}
-    // List sharing for a given project and member
-    shareListProjectMember: function(project, member, opts) {
-        this.request('GET', '/share/list/' + project + '/' + member + '/', null, opts || {});
-    },
-
-    // ** {{{ shareRemoveAll() }}}
-    // Remove all sharing from a project
-    shareRemoveAll: function(project, opts) {
-        this.request('POST', '/share/remove/' + project + '/all/', null, opts || {});
-    },
-
-    // ** {{{ shareRemove() }}}
-    // Remove project sharing from a given member
-    shareRemove: function(project, member, opts) {
-        this.request('POST', '/share/remove/' + project + '/' + member + '/', null, opts || {});
-    },
-
-    // ** {{{ shareAdd() }}}
-    // Add a member to the sharing list for a project
-    shareAdd: function(project, member, options, opts) {
-        this.request('POST', '/share/add/' + project + '/' + member + '/', dojo.toJson(options), opts || {});
-    },
-
-    // ** {{{ viewmeListAll() }}}
-    // List all the members with view settings on me
-    viewmeListAll: function(opts) {
-        this.request('GET', '/viewme/list/all/', null, opts || {});
-    },
-
-    // ** {{{ viewmeList() }}}
-    // List the view settings for a given member
-    viewmeList: function(member, opts) {
-        this.request('GET', '/viewme/list/' + member + '/', null, opts || {});
-    },
-
-    // ** {{{ viewmeSet() }}}
-    // Alter the view setting for a given member
-    viewmeSet: function(member, value, opts) {
-        this.request('POST', '/viewme/set/' + member + '/' + value + '/', null, opts || {});
     },
     
     // ** {{{ vcs() }}}

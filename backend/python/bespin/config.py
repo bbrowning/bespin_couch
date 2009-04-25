@@ -34,7 +34,9 @@ import ConfigParser
 from path import path
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
+
+from bespin import stats
 
 class Bunch(dict):
     def __getattr__(self, attr):
@@ -53,7 +55,6 @@ c.pw_secret = "This phrase encrypts passwords."
 c.static_dir = os.path.abspath("%s/../../../frontend" % os.path.dirname(__file__))
 c.docs_dir = os.path.abspath("%s/../../../docs" % os.path.dirname(__file__))
 c.log_file = os.path.abspath("%s/../devserver.log" % os.path.dirname(__file__))
-c.sessionmaker = sessionmaker()
 c.default_quota = 15
 c.secure_cookie = True
 c.template_path = [path(__file__).dirname().abspath()]
@@ -67,6 +68,14 @@ c.queue_port = None
 
 # holds the actual queue object
 c.queue = None
+
+# stats type: none, memory, redis
+# memory just holds the stats in a dictionary
+# redis stores the stats in a redis server
+# http://code.google.com/p/redis/
+c.stats_type = "none"
+c.redis_host = None
+c.redis_port = None
 
 # if this is true, the user's UUID will be used as their
 # user directory name. If it's false, their username will
@@ -99,11 +108,10 @@ def set_profile(profile):
                         % os.path.dirname(__file__))
         root_log = logging.getLogger()
         root_log.setLevel(logging.DEBUG)
-        handler = logging.handlers.RotatingFileHandler(
-                    c.log_file)
+        handler = logging.handlers.RotatingFileHandler(c.log_file)
         handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
         root_log.addHandler(handler)
-        
+
         paste_log = logging.getLogger("paste.httpserver.ThreadPool")
         paste_log.setLevel(logging.ERROR)
         
@@ -124,13 +132,29 @@ def load_config(configfile):
     
 def activate_profile():
     c.dbengine = create_engine(c.dburl)
+    #c.session_factory = scoped_session(sessionmaker(bind=c.dbengine))
+    c.session_factory = sessionmaker(bind=c.dbengine)
     c.fsroot = path(c.fsroot)
     if not c.fsroot.exists:
         c.fsroot.makedirs()
     
     if c.async_jobs:
+        if c.queue_port:
+            c.queue_port = int(c.queue_port)
+
         from bespin import queue
         c.queue = queue.BeanstalkQueue(c.queue_host, c.queue_port)
+    
+    if c.stats_type == "redis":
+        from bespin import redis
+        if c.redis_port:
+            c.redis_port = int(c.redis_port)
+        redis_client = redis.Redis(c.redis_host, c.redis_port)
+        c.stats = stats.RedisStats(redis_client)
+    elif c.stats_type == "memory":
+        c.stats = stats.MemoryStats()
+    else:
+        c.stats = stats.DoNothingStats()
     
 def dev_spawning_factory(spawning_config):
     spawning_config['app_factory'] = spawning_config['args'][0]

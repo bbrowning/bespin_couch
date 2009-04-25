@@ -286,33 +286,49 @@ dojo.declare("bespin.client.settings.ServerFile", null, {
         }
 
         bespin.get('files').saveFile(bespin.userSettingsProject, {
-            name: "settings.txt",
+            name: "settings",
             content: settings,
             timestamp: new Date().getTime()
         });
     },
 
     _load: function() {
-        var checkLoaded = dojo.hitch(this, function() {
-            if (!this.loaded) { // first time load
-                this.loaded = true;
+        
+        var self = this;
+
+        var checkLoaded = function() {
+            if (!self.loaded) { // first time load
+                self.loaded = true;
                 bespin.publish("settings:loaded");
             }
-        });
+        };
 
-        setTimeout(dojo.hitch(this, function() {
-            bespin.get('files').loadContents(bespin.userSettingsProject, "settings.txt", dojo.hitch(this, function(file) {
-                dojo.forEach(file.content.split(/\n/), dojo.hitch(this, function(setting) {
+        var loadSettings = function() {
+            bespin.get('files').loadContents(bespin.userSettingsProject, "settings", function(file) {
+                dojo.forEach(file.content.split(/\n/), function(setting) {
                     if (setting.match(/^\s*#/)) return; // if comments are added ignore
                     if (setting.match(/\S+\s+\S+/)) {
                         var pieces = setting.split(/\s+/);
-                        this.settings[dojo.trim(pieces[0])] = dojo.trim(pieces[1]);
+                        self.settings[dojo.trim(pieces[0])] = dojo.trim(pieces[1]);
                     }
-                }));
+                });
 
                 checkLoaded();
-            }), checkLoaded); // unable to load the file, so kick this off and a save should kick in
-        }), 0);
+            }, checkLoaded); // unable to load the file, so kick this off and a save should kick in
+        };
+
+        setTimeout(loadSettings, 0);
+
+        /*
+        if (bespin.authenticated) {
+            loadSettings();
+        }
+        else {
+            bespin.subscribe("authenticated", function() {
+                loadSettings();
+            });
+        }
+        */
     }
 });
 
@@ -520,7 +536,9 @@ dojo.declare("bespin.client.settings.Events", null, {
 
                 // Not in the default themes, load from bespin.themes.ThemeName file
                 try {
-                    dojo.require("bespin.themes." + theme);
+                    var dr = dojo.require;
+                    // the build system doesn't like dynamic names.
+                    dr("bespin.themes." + theme);
                     if (checkSetAndExit()) return true;
                 } catch (e) {
                     //console.log(e);
@@ -595,11 +613,10 @@ dojo.declare("bespin.client.settings.Events", null, {
         bespin.subscribe("settings:set:debugmode", function(event) {
             editor.debugMode = settings.isOn(event.value);
 
-            if (editor.debugMode) {
-                bespin.get('files').loadContents(bespin.userSettingsProject, "breakpoints.txt", dojo.hitch(this, function(file) {
-                    bespin.debugInfo.breakpoints = dojo.fromJson(file.content);
+            if (editor.debugMode && bespin.debug) {
+                bespin.debug.loadBreakpoints(function() {
                     editor.paint(true);
-                }));
+                });
             }
 
             editor.paint(true);
@@ -683,15 +700,24 @@ dojo.declare("bespin.client.settings.Events", null, {
                     });
                 }
             }
-        });        
+        });
+
+        // ** {{{ Event: bespin:settings:init }}} **
+        //
+        // Check for auto load
+        bespin.subscribe("settings:init", function() {
+            if (settings.isOff(settings.get('autoconfig'))) return;
+
+            bespin.publish("editor:config:run");
+        });
 
         // ** {{{ Event: settings:jslint }}} **
         //
         // When changing the jslint setting, restart the parser
         bespin.subscribe("jslint", function(event) {
             bespin.publish("parser:stop");
-           bespin.publish("parser:start");
+            bespin.publish("parser:start");
             bespin.get("parser").fetch();
-        });      
+        });
     }
 });

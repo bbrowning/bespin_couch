@@ -40,8 +40,12 @@
 // {{{ bespin.get }}} allows you to get registered components out
 // {{{ bespin.withComponent }}} maps onto dojo.subscribe but lets us abstract away for the future
 
+(function () {
 dojo.provide("bespin.bespin");
-    
+
+var lazySubscriptionCount   = 0;  // holds the count to keep a unique value for setTimeout
+var lazySubscriptionTimeout = {}; // holds the timeouts so they can be cleared later
+
 dojo.mixin(bespin, {
     // BEGIN VERSION BLOCK
     versionNumber: 'tip',
@@ -64,7 +68,26 @@ dojo.mixin(bespin, {
     // ** {{{ subscribe }}} **
     //
     // Given a topic and a function, subscribe to the event
-    subscribe: function(topic, callback) {
+    // If minTimeBetweenPublishMillis is set to an integer the subscription will not
+    // be invoked more than once within this time interval
+    subscribe: function(topic, callback, minTimeBetweenPublishMillis) {
+        if (minTimeBetweenPublishMillis) {
+            var orig = callback;
+
+            var count = lazySubscriptionCount++;
+
+            callback = function lazySubscriptionWrapper() {
+                if (lazySubscriptionTimeout[count]) {
+                    clearTimeout(lazySubscriptionTimeout[count]);
+                }
+
+                lazySubscriptionTimeout[count] = setTimeout(dojo.hitch(this, function() {
+                    orig.apply(this, arguments);
+                    delete lazySubscriptionTimeout[count];
+                }), minTimeBetweenPublishMillis);
+            };
+            
+        }
         return dojo.subscribe("bespin:" + topic, callback);
     },
 
@@ -111,68 +134,7 @@ dojo.mixin(bespin, {
         var el = dojo.byId(el) || dojo.byId("version");
         if (!el) return;
         el.innerHTML = '<a href="https://wiki.mozilla.org/Labs/Bespin/ReleaseNotes" title="Read the release notes">Version <span class="versionnumber">' + this.versionNumber + '</span> "' + this.versionCodename + '"</a>';
-    },
-
-    debugInfo: {
-        /*
-         * Array of objects that look like this:
-         * { project: "project", path: "/path/to/file.js", lineNumber: 23 }
-         */
-        breakpoints: [],
-
-        // any state that is sent from the target VM
-        state: {},
-
-        // helper to check for duplicate breakpoints before adding this one
-        addBreakpoint: function(newBreakpoint) {
-            for (var i = 0; i < this.breakpoints.length; i++) {
-                var breakpoint = this.breakpoints[i];
-                if (this.breakpointsEqual(breakpoint, newBreakpoint)) return false;
-            }
-            this.breakpoints.push(newBreakpoint);
-            this.saveBreakpoints();
-            return true;
-        },
-
-        // returns true if the two breakpoints represent the same line in the same file in the same project
-        breakpointsEqual: function(b1, b2) {
-            return (b1.project == b2.project && b1.path == b2.path && b1.lineNumber == b2.lineNumber);
-        },
-
-        // helper to remove a breakpoint from the breakpoints array
-        removeBreakpoint: function(breakpointToRemove) {
-            for (var i = 0; i < this.breakpoints.length; i++) {
-                if (this.breakpointsEqual(this.breakpoints[i], breakpointToRemove)) {
-                    this.breakpoints.splice(i, 1);
-                    this.saveBreakpoints();
-                    return;
-                }
-            }
-        },
-
-        toggleBreakpoint: function(breakpoint) {
-            if (!this.addBreakpoint(breakpoint)) this.removeBreakpoint(breakpoint);
-        },
-
-        // helper to return the breakpoints that apply to the current file
-        getBreakpoints: function(project, path) {
-            var bps = [];   // breakpoints to return
-
-            dojo.forEach(this.breakpoints, function(breakpoint) {
-                if (breakpoint.project == project && breakpoint.path == path) bps.push(breakpoint);
-            });
-
-            return bps;
-        },
-
-        saveBreakpoints: function() {
-            // save breakpoints back to server asynchronously
-            bespin.get('files').saveFile(bespin.userSettingsProject, {
-                name: "breakpoints.txt",
-                content: dojo.toJson(this.breakpoints),
-                timestamp: new Date().getTime()
-            });
-
-        }
     }
+
 });
+})()

@@ -255,8 +255,11 @@ def file_list_all(request, response):
     user = request.user
     project_name = request.kwargs['project_name']
     project = model.get_project(user, user, project_name)
+    metadata = project.metadata
 
-    files = project._search_cache.lines(retain=False)
+    files = metadata.get_file_list()
+    metadata.close()
+    
     return _respond_json(response, files)
 
 @expose(r'^/file/search/(?P<project_name>.*)$', 'GET')
@@ -341,7 +344,7 @@ def filestats(request, response):
 #     fm.reset_edits(user, project, path)
 #     return response()
 
-@expose(r'^/(?P<filename>editor|dashboard)\.html', 'GET', auth=False)
+@expose(r'^/(?P<filename>editor|dashboard)\.html', 'GET', auth=False, skip_token_check=True)
 def static_with_login(request, response):
     """Ensure that the user is logged in. Redirect them to the front
     page if they're not. If they are logged in, go ahead and serve
@@ -823,7 +826,8 @@ def messages(request, response):
 def db_middleware(app):
     def wrapped(environ, start_response):
         from bespin import model
-        session = c.sessionmaker(bind=c.dbengine)
+        from sqlalchemy.orm import scoped_session
+        session = c.session_factory()
         environ['bespin.dbsession'] = session
         environ['bespin.docommit'] = True
         environ['user_manager'] = model.UserManager(session)

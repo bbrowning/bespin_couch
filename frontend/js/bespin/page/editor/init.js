@@ -44,26 +44,6 @@ dojo.provide("bespin.page.editor.init");
     var scene;
 
     dojo.mixin(bespin.page.editor, {
-        // ** {{{ whenLoggedIn(userinfo) }}} **
-        //
-        // * {{{userinfo}}} is an object containing user specific info (project etc)
-        //
-        // Save the users magic project into the session
-        whenLoggedIn: function(userinfo) {
-            bespin.get('editSession').setUserinfo(userinfo);
-
-            bespin.register('settings', new bespin.client.settings.Core());
-            bespin.register('commandLine', new bespin.cmd.commandline.Interface('command', bespin.cmd.editorcommands.Commands));
-        },
-
-        // ** {{{ whenNotLoggedIn() }}} **
-        //
-        // Send the user back to the front page as they aren't logged in.
-        // The server should stop this from happening, but JUST in case.
-        whenNotLoggedIn: function() {
-            bespin.util.navigate.home(); // go back
-        },
-
         // ** {{{ recalcLayout() }}} **
         //
         // When a change to the UI is needed due to opening or closing a feature
@@ -92,7 +72,7 @@ dojo.provide("bespin.page.editor.init");
                 target.style.display = "none";
             }
 
-            this.doResize();
+            this.doResize();            
         },
 
         // ** {{{ doResize() }}} **
@@ -104,7 +84,8 @@ dojo.provide("bespin.page.editor.init");
 
             // Repaint the various canvas'
             scene.paint();
-            bespin.get('editor').paint();
+            bespin.get('editor').paint();            
+            bespin.get('commandLine').infoResizer();
         }
     });
 
@@ -122,19 +103,35 @@ dojo.provide("bespin.page.editor.init");
         bespin.register('toolbar', new bespin.editor.Toolbar(editor, { setupDefault: true }));
         bespin.register('quickopen', new bespin.editor.quickopen.API());
 
-        // Force a login just in case the user session isn't around
-        server.currentuser(bespin.page.editor.whenLoggedIn, bespin.page.editor.whenNotLoggedIn);
-
-        // Set the version info
-        bespin.displayVersion();
-
         // Get going when settings are loaded
         bespin.subscribe("settings:loaded", function(event) {
             bespin.get('settings').loadSession();  // load the last file or what is passed in
             bespin.page.editor.doResize();
         });
         
-        // --- START SEARCH ---
+        var whenLoggedIn = function(userinfo) {
+            bespin.get('editSession').setUserinfo(userinfo);
+
+            bespin.register('settings', new bespin.client.settings.Core());
+            bespin.register('commandLine', new bespin.cmd.commandline.Interface('command', bespin.cmd.editorcommands.Commands));
+
+            // Set up message retrieval
+            server.processMessages();
+
+            bespin.publish("authenticated");
+        };
+
+        var whenNotLoggedIn = function() {
+            bespin.util.navigate.home(); // go back
+        };
+
+        // Force a login just in case the user session isn't around
+        server.currentuser(whenLoggedIn, whenNotLoggedIn);
+
+        // Set the version info
+        bespin.displayVersion();
+
+        // START SEARCH BINDINGS
         // bind in things for search :)
         // some of the key-bindings go to the window object direct, to make them happen all over the window
         dojo.connect(window, 'keydown', function(e) {
@@ -225,7 +222,7 @@ dojo.provide("bespin.page.editor.init");
             dojo.byId('searchquery').blur();
         });
         
-        // --- DONE WITH SEARCH ---
+        // END SEARCH BINDINGS
 
         dojo.connect(window, 'resize', bespin.page.editor, "doResize");
 
@@ -269,9 +266,6 @@ dojo.provide("bespin.page.editor.init");
             this.children[3].bounds = { x: x, y: 0, width: dirtyWidth, height: d.b.h };
         };
         scene.render();
-        
-        // Set up message retrieval
-        server.processMessages();
     });
 
     // ** {{{ Event: editor:openfile:opensuccess }}} **
@@ -295,6 +289,13 @@ dojo.provide("bespin.page.editor.init");
         scene.render();
     });
 
+    // ** {{{ Event: editor:dirty }}} **
+    // 
+    // Change the HTML title to change - to ● as a subtle indicator
+    bespin.subscribe("editor:dirty", function() {
+        document.title = document.title.replace('- editing with Bespin', '● editing with Bespin');
+    });
+
     // ** {{{ Event: editor:clean }}} **
     // 
     // Take away the notifier. Just saved
@@ -302,4 +303,12 @@ dojo.provide("bespin.page.editor.init");
         dirtyLabel.attributes.text = "";
         scene.render();
     });
+
+    // ** {{{ Event: editor:clean }}} **
+    // 
+    // Take away the notifier from the HTML title.
+    bespin.subscribe("editor:clean", function(event) {
+        document.title = document.title.replace('● editing with Bespin', '- editing with Bespin');
+    });
+
 })();

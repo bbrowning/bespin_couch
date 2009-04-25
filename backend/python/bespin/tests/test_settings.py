@@ -26,7 +26,7 @@
 # ***** END LICENSE BLOCK *****
 # 
 
-from webtest import TestApp
+from __init__ import BespinTestApp
 import simplejson
 
 from bespin import config, controllers, model
@@ -41,16 +41,16 @@ def setup_module(module):
     config.activate_profile()
     model.Base.metadata.drop_all(bind=config.c.dbengine)
     model.Base.metadata.create_all(bind=config.c.dbengine)
-    session = config.c.sessionmaker(bind=config.c.dbengine)
+    session = config.c.session_factory()
     user_manager = model.UserManager(session)
     user_manager.create_user("BillBixby", "", "bill@bixby.com")
     app = controllers.make_app()
-    app = TestApp(app)
+    app = BespinTestApp(app)
     app.post("/register/login/BillBixby", dict(password=""))
 
 def test_auth_required():
     app = controllers.make_app()
-    app = TestApp(app)
+    app = BespinTestApp(app)
     app.post('/settings/', {'foo' : 'bar'}, status=401)
     app.get('/settings/', status=401)
     app.get('/settings/foo', status=401)

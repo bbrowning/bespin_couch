@@ -1239,7 +1239,9 @@ dojo.declare("th.components.WindowPanel", th.components.Panel, {
     },
     
     paintSelf: function(ctx) {      
-        ctx.lineWidth = 2;        
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "black";
+        
         ctx.strokeStyle = "#2E1F1A";
         ctx.strokeRect(0, 0, this.width, this.height);
     }
