@@ -66,6 +66,24 @@ dojo.provide("bespin.cmd.debugcommands");
         }
     });
 
+    // ** {{{Command: showevents}}} **
+    commandStore.addCommand({
+        name: 'showevents',
+        takes: ['arg'],
+        preview: 'Display the events available via pub/sub.',
+        hidden: true,
+        execute: function(self, arg) {
+            var all = typeof arg != "undefined" && arg == "all";
+            var html = "<u>Showing all Bespin Events</u><br><br>";
+            for (var topic in dojo._topics) {
+                if (all || topic.indexOf("bespin:") == 0) {
+                    html += topic + "<br>";
+                }
+            }
+            self.showInfo(html);
+        }
+    });
+
     // ** {{{Command: typingtest}}} **
     commandStore.addCommand({
         name: 'typingtest',
@@ -78,13 +96,13 @@ dojo.provide("bespin.cmd.debugcommands");
                 dojo.forEach(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], function(c) {
                     var args = { pos: bespin.editor.utils.copyPos(self.editor.getCursorPos()) };
                     args.newchar = c;
-                    self.editor.ui.actions.insertCharacter(args);            
+                    self.editor.ui.actions.insertCharacter(args);
                 });
             }
 
             var stop = Date.now();
 
-            self.showInfo("It took " + (stop - start) + " milliseconds to do this");        
+            self.showInfo("It took " + (stop - start) + " milliseconds to do this");
         }
     });
 
