@@ -118,11 +118,19 @@ dojo.declare("bespin.client.settings.Core", null, {
         bespin.publish("settings:set:" + key, { value: value });
     },
 
+    setObject: function(key, value) {
+        this.set(key, dojo.toJson(value));
+    },
+
     get: function(key) {
         var fromURL = this.fromURL.get(key); // short circuit
         if (fromURL) return fromURL;
 
         return this.store.get(key);
+    },
+
+    getObject: function(key) {
+        return dojo.fromJson(this.get(key));
     },
 
     unset: function(key) {
@@ -185,7 +193,7 @@ dojo.declare("bespin.client.settings.Cookie", null, {
                 'fontsize': '10',
                 'autocomplete': 'off',
                 'collaborate': 'off',
-                '_username': 'dion'
+                '_username': 'dion' // Really?
             };
             dojo.cookie("settings", dojo.toJson(this.settings), this.cookieSettings);
         }
@@ -668,6 +676,13 @@ dojo.declare("bespin.client.settings.Events", null, {
                 bespin.publish("project:set", { project: project });
             }
 
+            // Now we know what are settings are we can decide if we need to
+            // open the new user wizard
+            var oldHand = settings.isSettingOn("shownewuseronload");
+            if (!oldHand) {
+                bespin.publish("wizard:show", { type:"newuser", warnOnFail:false });
+            }
+
             // if this is a new file, deal with it and setup the state
             var newfile = settings.fromURL.get('new');
             if (newfile) { // scratch file
@@ -676,20 +691,25 @@ dojo.declare("bespin.client.settings.Events", null, {
                    newfilename: path,
                    content: settings.fromURL.get('content') || " "
                 });
-            // existing file, so open it
-            } else {
+            }
+            else {
+                // existing file, so open it
                 if (path) {
                     bespin.publish("editor:openfile", { filename: path });
                 }
                 else {
-                    // Try to find what we were last editing and open that
-                    bespin.publish("project:set", {
-                        project: settings.get("_lastproject") || "SampleProject"
-                    });
-
-                    bespin.publish("editor:openfile", {
-                        filename:settings.get("_lastfilename") || "readme.txt"
-                    });
+                    var lastUsed = settings.getObject("lastused");
+                    if (!lastUsed) {
+                        bespin.publish("project:set", { project: "SampleProject" });
+                        bespin.publish("editor:openfile", { filename: "readme.txt" });
+                    }
+                    else {
+                        // Warning: Publishing an extra filename member to
+                        // project:set and an extra project member to
+                        // editor:openfile
+                        bespin.publish("project:set", lastUsed[0]);
+                        bespin.publish("editor:openfile", lastUsed[0]);
+                    }
                 }
             }
         });

@@ -32,11 +32,11 @@ dojo.require("bespin.util.webpieces");
 
 dojo.mixin(bespin.user.utils, {
     whenLoginSucceeded: function() {
-        bespin.util.navigate.dashboard();
+        bespin.util.navigate.editor();
     },
 
-    whenLoginFailed: function() {
-        bespin.util.webpieces.showStatus("Sorry, login didn't work. Try again? Caps lock on?");
+    whenLoginFailed: function(xhr) {
+        bespin.util.webpieces.showStatus("Sorry, login didn't work. Try again? Caps lock on? (" + xhr.responseText + ")");
     },
 
     whenUsernameInUse: function() {
