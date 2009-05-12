@@ -39,6 +39,9 @@ bespin.wizard._wizards = {
     },
     overview: {
         url: "/overlays/overview.html"
+    },
+    palmstart: {
+        url: "/overlays/palmstart.html"
     }
 };
 
