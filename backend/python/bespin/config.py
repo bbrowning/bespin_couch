@@ -31,6 +31,7 @@ import logging
 import logging.handlers
 import ConfigParser
 
+import pkg_resources
 from path import path
 
 from sqlalchemy import create_engine
@@ -64,6 +65,11 @@ c.log_file = os.path.abspath("%s/../devserver.log" % os.path.dirname(__file__))
 c.default_quota = 15
 c.secure_cookie = True
 c.template_path = [path(__file__).dirname().abspath()]
+
+# additional mappings from top-level of URL to directory
+# in the config file, this can be provided as
+# static_map=foo=/path/to/files;bar=/path/to/other/files
+c.static_map = {}
 
 # turns on asynchronous running of long jobs (like vcs)
 c.async_jobs = True
@@ -124,6 +130,20 @@ c.stats_users = set()
 # a list of keys to display other than the base set
 c.stats_display = set()
 
+# Locations that should be added to Dojo's module path for loading
+# client side code.
+# See http://www.dojotoolkit.org/book/dojo-book-0-9/part-3-programmatic-dijit-and-dojo/modules-and-namespaces/creating-your-own-modul
+c.dojo_module_path = {}
+
+# Client side plugin modules that should be loaded automatically by the client.
+# Should be a list of dotted names
+c.javascript_plugins = []
+
+# List of capabilities provided by the server. This is just a list of strings
+# to be interpreted by the client. This will adjust the user interface to
+# focus the user on the capabilities provided by this server.
+c.capabilities = set(["vcs"])
+
 def set_profile(profile):
     if profile == "test":
         # this import will install the bespin_test store
@@ -161,6 +181,16 @@ def load_config(configfile):
     c.update(cp.items("config"))
 
 def activate_profile():
+    for ep in pkg_resources.iter_entry_points("bespin_extensions"):
+        ep.load()
+    
+    if isinstance(c.static_map, basestring):
+        static_map = {}
+        mappings = c.static_map.split(";")
+        for mapping in mappings:
+            name, directory = mapping.split("=")
+            static_map[name] = directory
+            
     c.dbengine = create_engine(c.dburl)
     c.session_factory = scoped_session(sessionmaker(bind=c.dbengine))
     c.fsroot = path(c.fsroot)
