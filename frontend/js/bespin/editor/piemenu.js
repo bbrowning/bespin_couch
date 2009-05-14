@@ -35,7 +35,7 @@ dojo.declare("bespin.editor.PieMenu", null, {
     constructor: function() {
         this.pie = dojo.create("canvas", {
             id: 'piemenu',
-            style: "position: absolute; z-index: 400; top: 62px; border: 1px solid red;"
+            style: "position: absolute; z-index: 400; top: 64px; border: 0px solid red;"
         }, dojo.body());
         this.pie.height = bespin.get('editor').canvas.height;
         this.pie.width = bespin.get('editor').canvas.width;
@@ -94,6 +94,10 @@ dojo.declare("bespin.editor.PieMenu", null, {
         ctx.save();
 
         ctx.clearRect(0, 0, this.pie.width, this.pie.height);
+
+        var alpha = Math.max(progress - 0.4, 0);
+        ctx.fillStyle = "rgba(0, 0, 0, " + alpha + ")";
+        ctx.fillRect(0, 0, this.pie.width, this.pie.height);
 
         var height = parseInt(puck_off.height * progress);
         var width = parseInt(puck_off.width * progress);
