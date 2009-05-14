@@ -104,6 +104,27 @@ dojo.declare("bespin.parser.CodeInfo", null, {
             }
             bespin.publish("message", { msg: html });
         });
+        
+        // ** {{{ Event: parser:engine:parseDone }}} **
+        //
+        // Fires when the parser engine finished a parsing run
+        bespin.subscribe("parser:engine:parseDone", function(event) {
+            var data = event.info;
+            //console.log("Worker Response "+dojo.toJson(data))
+            if (data.errors && data.errors.length > 0) {
+                for (var i = 0; i < data.errors.length; i++) {
+                    bespin.publish("parser:error", {
+                        message: data.errors[i].message,
+                        row: data.errors[i].line,
+                        jslint: data.errors[i].jslint
+                    });
+                }
+            }
+            if(data.metaInfo) {
+                self.currentMetaInfo = data.metaInfo;
+            }
+            self._running = false;
+        })
     },
 
     // ** {{{ start }}} **
@@ -112,21 +133,7 @@ dojo.declare("bespin.parser.CodeInfo", null, {
     // will start listening for doc change events and run the parser every time
     start: function() {
         var self = this;
-
-        // if we are not supposed to run, don't run
-        var settings = bespin.get("settings");
-        if (settings.isOff(settings.get("syntaxcheck"))) {
-            return;
-        }
-
         var editor = bespin.get("editor");
-        if (!editor.language) {
-            // we should not start until the language was set once
-            bespin.subscribe("settings:language", function() {
-                self.start()
-            })
-            return;
-        }
 
         if (!bespin.util.include(['js'], editor.language)) {
             // don't run the syntax parser for files that we can't grok yet!
@@ -139,7 +146,6 @@ dojo.declare("bespin.parser.CodeInfo", null, {
 
         if (!self._started) {
             self._started = true;
-
             self.fetch();
 
             self.run_timeout;
@@ -149,6 +155,7 @@ dojo.declare("bespin.parser.CodeInfo", null, {
             var rerun = function() {
                 // only to a fetch at max every N millis
                 // so we dont run during active typing
+
                 if (self.run_timeout) {
                     clearTimeout(self.run_timeout);
                 }
@@ -156,7 +163,6 @@ dojo.declare("bespin.parser.CodeInfo", null, {
                     if(self._running) {
                         self.run_timeout = setTimeout(arguments.callee, delay)
                     } else {
-                        //console.log("Syntax-Check");
                         self.fetch();
                     }
                 }, delay)
@@ -191,22 +197,12 @@ dojo.declare("bespin.parser.CodeInfo", null, {
                 self.lineMarkers = [];
                 
                 self._running = true;
-                bespin.parser.AsyncEngineResolver.parse(type, source).and(function(data) {
-                    //console.log("Worker Response "+dojo.toJson(data))
-                    if (data.errors && data.errors.length > 0) {
-                        for (var i = 0; i < data.errors.length; i++) {
-                            bespin.publish("parser:error", {
-                                message: data.errors[i].message,
-                                row: data.errors[i].line,
-                                jslint: data.errors[i].jslint
-                            });
-                        }
-                    }
-                    if(data.metaInfo) {
-                        self.currentMetaInfo = data.metaInfo;
-                    }
-                    self._running = false;
+                //console.log("Syntax-Check");
+                bespin.publish("parser:engine:parse", {
+                    type: type,
+                    source: source 
                 })
+                
             }
         }
     },
@@ -288,13 +284,19 @@ dojo.declare("bespin.parser.JavaScript", null, {
         var funcs = [];
         var info = [];
         var codePatterns = this.getCodePatterns();
-
         // preprocess for speed
         for(var type in codePatterns) {
-            var ns = codePatterns[type].declaration.split(".");
-            var indicator = ns.pop();
-            codePatterns[type]._indicator = indicator;
-            codePatterns[type]._ns        = ns;
+            if(codePatterns.hasOwnProperty(type)) {
+                //console.log(JSON.stringify(codePatterns[type]))
+                try {
+                    var ns = codePatterns[type].declaration.split(".");
+                    var indicator = ns.pop();
+                    codePatterns[type]._indicator = indicator;
+                    codePatterns[type]._ns        = ns;
+                } catch(e) {
+                    console.log("Weird FF3b3 error "+e)
+                }
+            }
         }
 
         var FUNCTION = 74; // from narcissus
@@ -405,34 +407,47 @@ dojo.declare("bespin.parser.JavaScript", null, {
             html: html
         }
     },
+    
+    codePatterns: {
+        dojoClass: {
+            declaration: "dojo.declare",
+            description: "Class"
+        },
+        bespinEventPublish: {
+            declaration: "bespin.publish",
+            description: "Publish"
+        },
+        bespinEventSubscription: {
+            declaration: "bespin.subscribe",
+            description: "Subscribe to"
+        },
+        jooseClass: {
+            declaration: "Class"
+        },
+        jooseModule: {
+            declaration: "Module"
+        },
+        jooseType: {
+            declaration: "Type"
+        },
+        jooseRole: {
+            declaration: "Role"
+        }
+    },
 
     getCodePatterns: function () {
-        return {
-            dojoClass: {
-                declaration: "dojo.declare",
-                description: "Class"
-            },
-            bespinEventPublish: {
-                declaration: "bespin.publish",
-                description: "Publish"
-            },
-            bespinEventSubscription: {
-                declaration: "bespin.subscribe",
-                description: "Subscribe to"
-            },
-            jooseClass: {
-                declaration: "Class"
-            },
-            jooseModule: {
-                declaration: "Module"
-            },
-            jooseType: {
-                declaration: "Type"
-            },
-            jooseRole: {
-                declaration: "Role"
+        return this.codePatterns
+    },
+    
+    initialize: function () {
+        var self = this;
+        //console.log("SubInit")
+        bespin.subscribe("parser:js:codePatterns", function (patterns) {
+            for(pattern in patterns) {
+                self.codePatterns[pattern] = patterns[pattern]
             }
-        }
+            bespin.publish("parser:engine:updatedCodePatterns")
+        })
     },
 
     parse: function(source) {
@@ -536,12 +551,39 @@ bespin.parser.EngineResolver = function() {
       // Hunt down the engines for the given {{{type}}} (e.g. css, js, html)
       resolve: function(type) {
           return this.engines[type] || [];
+      },
+      
+      initialize: function () {
+          var engine = this;
+          bespin.subscribe("parser:engine:parse", function (event) {
+              var ret = engine.parse(event.type, event.source);
+              bespin.publish("parser:engine:parseDone", {
+                  type: event.type,
+                  info: ret
+              })
+          })
+          
+          // forward initialize to engines
+          for(var type in this.engines) {
+              var list = this.engines[type];
+              for(var i = 0; i < list.length; i++) {
+                  var eng = list[i];
+                  if(!eng._init) { // make sure we only init once (engine can occur multiple times)
+                      if(eng.initialize) {
+                          eng.initialize()
+                      }
+                      eng._init = true;
+                  }
+              }
+          }
+          
+          bespin.publish("parser:engine:initialized", {})
       }
   };
 }();
 
-bespin.parser.EngineResolver.register(new bespin.parser.JSLint(), ['js', 'javascript', 'ecmascript']);
-bespin.parser.EngineResolver.register(new bespin.parser.JavaScript(), ['js', 'javascript', 'ecmascript']);
+bespin.parser.EngineResolver.register(new bespin.parser.JSLint(), ['js']);
+bespin.parser.EngineResolver.register(new bespin.parser.JavaScript(), ['js']);
 
 
 // Turn us into a worker-thread
@@ -551,18 +593,25 @@ bespin.parser.AsyncEngineResolver = new bespin.worker.WorkerFacade(
     // we need these libs. Should probably move to a property of the JS engine
     ["/js/jsparse/jsdefs.js", "/js/jsparse/jsparse.js", "/js/jsparse/fulljslint.js"]);
 
-// As soon as a doc is opened we are a go
-bespin.subscribe("settings:language", function() {
-
-    bespin.register("parser", new bespin.parser.CodeInfo());
+//** {{{ Event: parser:start }}} **
+//
+// Start parsing the document
+bespin.subscribe("parser:start", function () {
     bespin.get("parser").start();
-
-    // ** {{{ Event: parser:start }}} **
-    //
-    // Start parsing the document
-    bespin.subscribe("parser:start", function () {
-        bespin.get("parser").start();
-    })
 })
 
+bespin.register("parser", new bespin.parser.CodeInfo());
 
+bespin.fireAfter(["settings:language", "settings:set:syntaxcheck", "parser:engine:initialized"], function () {
+    var settings = bespin.get("settings");
+    if (settings.isOn(settings.get("syntaxcheck"))) {
+        var editor = bespin.get("editor");
+        if (!editor.language) { // wait some more, editor needs to catch this first
+            bespin.subscribe("settings:language", function () {
+                bespin.publish("parser:start")
+            })
+        } else {
+            bespin.publish("parser:start")
+        }
+    }
+})
