@@ -1,0 +1,474 @@
+body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+	background-color: #2A211C;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#history {
+    margin-right: 40px !important;
+}
+
+#view_in_browser {
+    margin-right: 40px !important;
+}
+
+#editor {
+    position: absolute;
+    top: 32px;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    z-index: -1;
+    margin: 0;
+    padding: 0;
+    cursor: text !important;
+}
+
+#preview {
+    position: absolute;
+    top: 32px;
+    bottom:33px;
+    right: 0px;
+    left: 0px;
+    z-index: -1;
+}
+
+#filelist {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    top: 64px;
+    bottom: 33px;
+    right: 0px;
+    left: 0px;
+    display: none;
+}
+
+.popupWindow {
+    position: absolute;
+    margin: 0;
+    display: none;
+    background-color: #8F8D88;
+    background: url("../images/background_white_50.png");
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    padding: 10px;
+    -moz-opaque: true;
+}
+
+#quickopen_text {
+    position: absolute;
+    width: 204px;
+    height: 15px;
+    margin: 0;
+    padding: 0;
+    top: 34px;
+    left: 15px;
+    color: black;
+}
+
+#search_text {
+    position: absolute;
+    width: 200px;
+    height: 14px;
+    margin: 0;
+    padding: 0;
+    top: 40px;
+    left: 80px;
+    color: black;
+}
+
+#replace_text {
+    position: absolute;
+    width: 200px;
+    height: 15px;
+    margin: 0;
+    padding: 0;
+    top: 65px;
+    left: 80px;
+    color: black;
+}
+
+#bu_search_next {
+    position: absolute;
+    top: 90px;
+    left: 240px;
+}
+
+#bu_search_prev {
+    position: absolute;
+    top: 90px;
+    left: 170px;
+}
+
+#bu_replace_all {
+    position: absolute;
+    top: 90px;
+    left: 20px;
+}
+
+#search {
+    float: right;
+}
+
+#searchquery {
+    margin-right: 4px;
+    margin-top: 7px;
+    background-image: url("../images/search_background.png");
+    width: 118px;
+    height: 14px;
+    border: 0;
+    background-repeat: no-repeat;
+    padding: 1px 5px;
+    color: #DDDDDD;
+}
+
+#searchresult {
+    clear: all;
+    background-color: #D4CfBf;
+    margin-top: 31px;
+    margin-right: 30px;
+    height: 20px;
+    width: 220px;
+    padding-top: 7px;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-size: 12px;
+    font-family: Calibri, Arial, sans-serif;
+    border: 1px solid black;
+    color: #464646;
+}
+
+#searchresult img {
+    margin: 0px;
+}
+
+#toolbar_collaboration {
+    float: right;
+    padding-right: 4px;
+}
+
+#toolbar_dashboard {
+    padding-right: 4px;
+}
+
+#collab_line {
+    float: right;
+    height: 24px;
+    margin: 4px 0;
+    border-left: 1px solid #454545;
+    width: 4px;
+}
+
+#footer {
+    position: absolute;
+    bottom: -1px;
+    right: 0;
+    left: 0;
+    height: 28px;
+    background-image: url("../images/footer_bg.png");
+    background-repeat: repeat-x;
+    padding: 5px;
+}
+
+#files {
+    position: absolute;
+    top: 32px;
+    bottom: 0;
+    left: 0;
+    width: 210px;
+    display: none;
+    background-image: url("../images/files_pane_bg.png");
+    background-repeat: repeat-y;
+}
+
+#files_find {
+    background-image: url("../images/files_quickfind_hdr.gif");
+    height: 32px;
+    width: 200px;
+}
+
+#files_find div {
+    float: left;
+}
+
+#files_find_text {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 10pt;
+    color: #DDDDDD;
+    padding: 7px 9px 0 9px;
+}
+
+#quickfind {
+    margin-right: 4px;
+    margin-top: 7px;
+    background-image: url("../images/quick_find_background.png");
+    width: 85px;
+    height: 14px;
+    border: 0;
+    background-repeat: no-repeat;
+    padding: 1px 5px;
+    color: #DDDDDD;
+}
+
+#files_find_icon {
+    padding-top: 6px;
+}
+
+#files_project {
+    background-image: url("../images/files_hdr_off.gif");
+    background-repeat: repeat-x;
+    height: 38px;
+    width: 200px;
+}
+
+#files_project_name {
+    float: left;
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 12pt;
+    color: #dad4ba;
+    padding: 5px 0 0 9px;
+}
+
+#files_project_pulldown {
+    float: right;
+    padding: 12px;
+}
+
+#collab {
+    position: absolute;
+    top: 32px;
+    bottom: 0;
+    right: 0;
+    width: 210px;
+    display: none;
+    background-image: url("../images/collab_pane_bg.png");
+    background-repeat: repeat-y;
+}
+
+#collab_header {
+    background-image: url("../images/collab_hdr_bg.gif");
+    height: 32px;
+    margin-left: 10px;
+}
+
+#collab_header div {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 12pt;
+    color: #DDDDDD;
+    padding: 5px 0 0 9px;
+}
+
+.collab_subheader {
+    background-image: url("../images/collab_categorybar_bg.gif");
+    margin-left: 10px;
+    height: 23px;
+}
+
+.collab_subheader div {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 10pt;
+    color: #dad4ba;
+    padding: 3px 0 0 9px;
+}
+
+.collab_text {
+    margin-left: 10px;
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 10pt;
+    color: #dad4ba;
+    padding: 3px 0 0 9px;
+}
+
+.collab_person {
+    background-image: url("../images/collab_user_bg.gif");
+    margin-left: 10px;
+    height: 48px;
+}
+
+.collab_icon {
+    background-image: url("../images/collab_icn_user.png");
+    height: 32px;
+    width: 32px;
+    float: left;
+    margin: 8px;
+}
+
+.collab_name {
+    color: #DDDDDD;
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 12pt;
+    padding: 5px 0 0 2px;
+}
+
+.collab_description {
+    color: #DDDDDD;
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 9pt;
+    padding: 0 0 0 2px;
+}
+
+#bar {
+    border-left: 1px solid #312F2A;
+    border-right: 1px solid #626262;
+    margin: 4px 30px 0 0;
+/*    float: left;*/
+    width: 0;
+    height: 23px;
+}
+
+#toolbar {
+    float: right;
+    padding-top: 7px;
+}
+
+#status {
+    width: 300px;
+    height: 24px;
+    float: left;
+    padding-top: 5px;
+    margin: 0;
+    color: #DDDDDD;
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 12pt;
+    overflow: hidden;
+}
+
+#status .seperator {
+	color: #999;
+}
+
+#filename {
+    height: 31px;
+    overflow: hidden !important;
+}
+
+#message {
+    font-size: 14px;
+    font-family: Calibri, Arial, sans-serif;
+    color: #777777;
+}
+
+#message a {
+    color: #777777;
+    text-decoration: none;
+}
+
+#footer_bar {
+    float: right;
+    border-left: 1px solid #312F2A;
+    border-right: 1px solid #626262;
+    margin: 5px 12px 0 14px;
+    width: 0;
+    height: 23px;
+}
+
+#error_bar {
+    float: right;
+    padding-top: 7px;
+}
+
+#error_bar_text {
+    font-size: 10pt;
+    font-family: Calibri, Arial, sans-serif;
+    color: #DDDDDD;
+    padding-left: 2px;
+}
+
+#target_browsers {
+    position: absolute;
+    top: 32px;
+    left: 160px;
+    height: 53px;
+    background-image: url("../images/targ-browser_bg.png");
+    width: 711px;
+    display: none;
+}
+
+#target_browsers_table {
+    font-size: 11pt;
+    font-family: Calibri, Arial, sans-serif;
+    color: #DDDDDD;
+    border-collapse: collapse;
+    height: 43px;
+    margin-left: 10px;
+    width: 691px;
+}
+
+#target_browsers_table td {
+    text-align: center;
+}
+
+#target_browsers_table td.spacer {
+    padding: 0 7px 0 7px;
+}
+
+#target_browsers_table td.icon {
+    padding-left: 10px;
+}
+
+#selected_browsers {
+    font-size: 11pt;
+    font-family: Calibri, Arial, sans-serif;
+    color: #DDDDDD;
+}
+
+.comingsoon {
+    font-size: smaller;
+    color: red;
+    font-style: italic;
+}
+
+.icon {
+    cursor: pointer;
+}
+
+/* Jetpack Style */
+#jetpack_dropdown {
+    font-family: Calibri, Arial, sans-serif;
+}
+
+#jetpack_dropdown input[@type="button"] {
+    font-size: smaller;
+}
+
+#jetpack_dropdown_border {
+    position: absolute;
+    margin: 0;
+    padding: -5px;
+    background-color: #d6d1c1;
+    -moz-border-radius-bottomleft: 5px;
+    -moz-border-radius-bottomright: 5px;
+    -webkit-border-bottom-left-radius: 5px;
+    -webkit-border-bottom-right-radius: 5px;
+    opacity: 0.2;
+    z-index: 1;
+}
+
+#jetpack_dropdown_content {
+    position: absolute;
+    margin: 0px 5px 5px 5px;
+    padding: 4px;
+    color: #464646;
+    background-color: #d3cebf;
+    border: 1px solid black;
+    opacity: 1.0;
+    z-index: 2;
+}
+
+#jetpack_dropdown_content tr td {
+    padding: 2px;
+}
+
+#jetpack_dropdown_content tr th {
+    font-size: x-small;
+    color: #111;
+}
+
+tr#jetpack_dropdown_or td {
+    font-size: x-small;
+    color: #666;
+}
