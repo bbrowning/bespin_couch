@@ -235,6 +235,11 @@ dojo.declare("bespin.client.Server", null, {
     // * {{{onSuccess}}} fires after the user attempt
     // * {{{notloggedin}}} fires if the user isn't logged in
     currentuser: function(whenLoggedIn, whenNotloggedin) {
+        // TODO: Temporary hack until I figure out how to actually authenticate someone
+        whenLoggedIn({
+            username: "couchapp_user"
+        });
+        return;
         var url = "/register/userinfo/";
         return this.request('GET', url, null,
                 { onSuccess: whenLoggedIn, on401: whenNotloggedin, evalJSON: true });
@@ -661,7 +666,7 @@ dojo.declare("bespin.client.Server", null, {
         this.request('PUT', url,
                     dojo.toJson(templateOptions), opts || {});
     },
-    
+
     // ** {{{ projectTemplate() }}}
     // Create a new project based on a template. templateOptions
     // must include templateName to specify which template to use.
