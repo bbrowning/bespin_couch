@@ -9,7 +9,7 @@ CouchDB and running from there.
 * make sure you've followed Bespin setup guide down to paver dojo create_db step
 * cd couchapp
 * edit .couchapprc to point to your CouchDB server
-* couchapp push bespin apps
+* couchapp push bespin apps (may take several minutes for the first push)
 * point your browser at http://127.0.0.1:5984/apps/_design/bespin/index.html
 
 
