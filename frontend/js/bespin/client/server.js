@@ -261,6 +261,22 @@ dojo.declare("bespin.client.Server", null, {
         var opts = { onSuccess: onSuccess, evalJSON: true, log: "Listing files in: " + url };
         if (dojo.isFunction(onFailure)) opts.onFailure = onFailure;
 
+        // TODO: temporary hack until I pull this data via a view
+        if (project == '') {
+            onSuccess([
+                {'name': 'project one '},
+                {'name': 'project two '}
+            ]);
+        } else if (project == 'project one') {
+            onSuccess([
+                {'name': 'test.html'}
+            ]);
+        } else if (project == 'project two') {
+            onSuccess([
+                {'name': 'index.php'}
+            ]);
+        }
+        return;
         this.request('GET', url, null, opts);
     },
 
