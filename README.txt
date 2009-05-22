@@ -1,3 +1,23 @@
+Running Bespin Couch
+--------------------
+Follow directions from Bespin Developer Guide: https://wiki.mozilla.org/Labs/Bespin/DeveloperGuide/Setup
+
+Specifically, bootstrap, bin/activate, and paver dojo create_db. Instead of
+running the Bespin development server, we'll be pushing the code to
+CouchDB and running from there.
+
+* make sure you've followed Bespin setup guide down to paver dojo create_db step
+* cd couchapp
+* edit .couchapprc to point to your CouchDB server
+* couchapp push bespin apps
+* point your browser at http://127.0.0.1:5984/apps/_design/bespin/index.html
+
+
+
+Original Bespin Readme Below
+----------------------------
+
+
 Welcome to Bespin!
 ------------------
 
