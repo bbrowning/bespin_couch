@@ -22,14 +22,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-dojo.provide("th.th");  
+dojo.provide("th.th");
 
 /*
     Constants
- */ 
+ */
 dojo.mixin(th, {
     VERTICAL: "v",
-    HORIZONTAL: "h"    
+    HORIZONTAL: "h"
 });
 
 // ** {{{ Resources }}} **
@@ -70,7 +70,7 @@ dojo.declare("th.Resources", null, {
 
     load: function() {
         if (this.loaded) return;    // no re-loading
-        
+
         this.loading = true;
         this.parseCSS();
     },
@@ -108,7 +108,7 @@ dojo.declare("th.Resources", null, {
         var links = [];
 
         // add default stylesheet; cheesy path at the moment, need to come up with a better way to approach this TODO
-        links.push({ url: "/js/th/default.css", array: this.userAgentCss, index: 0 });
+        links.push({ url: "js/th/default.css", array: this.userAgentCss, index: 0 });
 
         var s, l = document.getElementsByTagName('link'), counter = 0;
 		for (var i=0; i < l.length; i++){
@@ -171,7 +171,7 @@ dojo.declare("th.Resources", null, {
 
 /*
     Event bus; all listeners and events pass through a single global instance of this class.
- */ 
+ */
 dojo.declare("th.Bus", null, {
     constructor: function() {
         // map of event name to listener; listener contains a selector, function, and optional context object
@@ -180,7 +180,7 @@ dojo.declare("th.Bus", null, {
 
     // register a listener with an event
     // - event: string name of the event
-    // - selector: 
+    // - selector:
     bind: function(event, selector, listenerFn, listenerContext) {
         var listeners = this.events[event];
         if (!listeners) {
@@ -203,7 +203,7 @@ dojo.declare("th.Bus", null, {
 
             for (var i = 0; i < listeners.length; i++) {
                 if (listeners[i].selector === selector) {
-                    this.events[event] = dojo.filter(listeners, function(item){ return item != listeners[i]; });                    
+                    this.events[event] = dojo.filter(listeners, function(item){ return item != listeners[i]; });
                     listeners = this.events[event];
                     i--;
                 }
@@ -256,7 +256,7 @@ th.global_event_bus = new th.Bus();
 // create the global resource loader loader
 th.global_resources = new th.Resources();
 
-dojo.declare("th.Scene", th.helpers.EventHelpers, { 
+dojo.declare("th.Scene", th.helpers.EventHelpers, {
     bus: th.global_event_bus,
 
     constructor: function(canvas) {
@@ -277,10 +277,10 @@ dojo.declare("th.Scene", th.helpers.EventHelpers, {
 
         dojo.connect(window, "resize", dojo.hitch(this, function() {
             this.render();
-        })); 
+        }));
 
         this.root = new th.components.Panel({ id: "root" });
-        this.root.scene = this; 
+        this.root.scene = this;
 
         var testCanvas = document.createElement("canvas");
         this.scratchContext = testCanvas.getContext("2d");
@@ -383,16 +383,16 @@ dojo.declare("th.Scene", th.helpers.EventHelpers, {
                 child = parent;
                 parent = parent.parent;
             }
-            
+
             if (!this.smartRedraw) {
                 ctx.clearRect(0, 0, component.bounds.width, component.bounds.height);
             }
             ctx.beginPath();
             ctx.rect(0, 0, component.bounds.width, component.bounds.height);
             ctx.closePath();
-            ctx.clip(); 
-            component.paint(ctx);  
-            
+            ctx.clip();
+            component.paint(ctx);
+
             ctx.restore();
         }
     }
@@ -410,10 +410,10 @@ dojo.declare("th.Border", th.helpers.ComponentHelpers, {
     },
 
     paint: function(ctx) {}
-});   
-    
+});
+
 dojo.declare("th.Component", th.helpers.ComponentHelpers, {
-    constructor: function(parms) { 
+    constructor: function(parms) {
         if (!parms) parms = {};
         this.bounds = parms.bounds || {};
         this.style = parms.style || {};
@@ -423,43 +423,43 @@ dojo.declare("th.Component", th.helpers.ComponentHelpers, {
         this.id = parms.id;
         this.border = parms.border;
         this.opaque = parms.opaque || true;
-    
-        this.bus = th.global_event_bus; 
+
+        this.bus = th.global_event_bus;
     },
-    
+
     // used to obtain a throw-away canvas context for performing measurements, etc.; may or may not be the same canvas as that used to draw the component
     getScratchContext: function() {
         var scene = this.getScene();
         if (scene) return scene.scratchContext;
     },
-    
+
     getPreferredHeight: function(width) {},
-    
+
     getPreferredWidth: function(height) {},
-    
+
     getInsets: function() {
         return (this.border) ? this.border.getInsets() : this.emptyInsets();
     },
-    
+
     paint: function(ctx) {},
-    
+
     repaint: function() {
         // todo: at present, there are some race conditions that cause painting to be invoked before a scene is ready, so this
         // check is necessary to bail. We need to work out better rules for scenes and components, etc.
         if (!this.getScene()) return;
-        
+
         this.getScene().paint(this);
     }
 });
 
 dojo.declare("th.Container", [th.Component, th.helpers.ContainerHelpers], {
-    constructor: function() {       
+    constructor: function() {
         this.children = [];
     },
-    
+
     add: function() {
         for (var z = 0; z < arguments.length; z++) {
-            component = dojo.isArray(arguments[z]) ? arguments[z] : [ arguments[z] ]; 
+            component = dojo.isArray(arguments[z]) ? arguments[z] : [ arguments[z] ];
             this.children = this.children.concat(component);
             for (var i = 0; i < component.length; i++) {
                 component[i].parent = this;
@@ -479,7 +479,7 @@ dojo.declare("th.Container", [th.Component, th.helpers.ContainerHelpers], {
             }
         }
     },
-    
+
     replace: function(component, index) {
         this.bus.unbind(this.children[index]);
         component.parent = this;
@@ -546,7 +546,7 @@ dojo.declare("th.Container", [th.Component, th.helpers.ContainerHelpers], {
     // lays out this container and any sub-containers
     layoutTree: function() {
         this.layout();
-        for (var i = 0; i < this.children.length; i++) {  
+        for (var i = 0; i < this.children.length; i++) {
             if (this.children[i].layoutTree) this.children[i].layoutTree();
         }
     },
@@ -571,9 +571,9 @@ dojo.declare("th.Container", [th.Component, th.helpers.ContainerHelpers], {
 });
 
 dojo.declare("th.Window", null, {
-    constructor: function(parms) {        
+    constructor: function(parms) {
         parms = parms || {};
-        
+
         this.containerId = parms.containerId || false;
         this.width = parms.width || 200;
         this.height = parms.height || 300;
@@ -586,20 +586,20 @@ dojo.declare("th.Window", null, {
         // some things must be given
         if(!parms.containerId) {
             console.error('The "containerId" must be given!');
-            return;            
+            return;
         }
-        
+
         // for the moment, this is done by hand!
         // if (dojo.byId(this.containerId)) {
         //             console.error('There is already a element with the id "'+this.containerId+'"!');
         //             return;
         //         }
-                
+
         if (!parms.userPanel) {
             console.error('The "userPanel" must be given!');
             return;
         }
-        
+
         /*if (!dojo.byId('popup_insert_point')) {
             // there is no place to add the popups => create one
             for (var x = 0; x < document.childNodes.length; x++) {
@@ -612,7 +612,7 @@ dojo.declare("th.Window", null, {
                 }
             }
         }*/
-        
+
         // insert the HTML to the document for the new window and create the scene
         // dojo.byId('popup_insert_point').innerHTML += '<div id="'+this.containerId+'" class="popupWindow"></div>';
         this.container = dojo.byId(this.containerId);
@@ -621,16 +621,16 @@ dojo.declare("th.Window", null, {
         this.container.innerHTML += "<canvas id='"+this.containerId+"_canvas'></canvas>";
         this.canvas = dojo.byId(this.containerId + '_canvas');
         dojo.attr(this.canvas, { width: this.width, height: this.height, tabindex: '-1' });
-        
+
         this.scene = new th.Scene(this.canvas);
         this.windowPanel = new th.components.WindowPanel(parms.title, parms.userPanel);
-        this.windowPanel.windowBar.parentWindow = this;  
+        this.windowPanel.windowBar.parentWindow = this;
         this.scene.root.add(this.windowPanel);
-        
+
         this.move(this.x, this.y);
-        
+
         // add some listeners for closing the window
-        
+
         // close the window, if the user clicks outside the window
         dojo.connect(window, "mousedown", dojo.hitch(this, function(e) {
             if (!this.isVisible || !this.closeOnClickOutside) return;
@@ -640,51 +640,51 @@ dojo.declare("th.Window", null, {
                 this.toggle();
             }
         }));
-        
+
         // close the window, if the user pressed ESCAPE
         dojo.connect(window, "keydown", dojo.hitch(this, function(e) {
             if (!this.isVisible) return;
-            
+
             if(e.keyCode == bespin.util.keys.Key.ESCAPE) {
                 this.toggle();
                 dojo.stopEvent(e);
             }
         }));
-    }, 
-         
+    },
+
     toggle: function() {
         this.isVisible = !this.isVisible;
-                
+
         if (this.isVisible) {
             this.container.style.display = 'block';
             this.layoutAndRender();
         } else {
             this.container.style.display = 'none';
         }
-        
+
         this.scene.bus.fire("toggle", {isVisible: this.isVisible}, this);
     },
-    
+
     layoutAndRender: function() {
         this.scene.layout();
         this.scene.render();
     },
-    
+
     centerUp: function() {
         this.move(Math.round((window.innerWidth - this.width) * 0.5), Math.round((window.innerHeight - this.height) * 0.25));
     },
-    
+
     center: function() {
         this.move(Math.round((window.innerWidth - this.width) * 0.5), Math.round((window.innerHeight - this.height) * 0.5));
     },
-    
+
     move: function(x, y) {
         this.y = y;
         this.x = x;
         this.container.style.top = y + 'px';
         this.container.style.left = x + 'px';
     },
-    
+
     getPosition: function() {
         return { x: this.x, y: this.y };
     }
