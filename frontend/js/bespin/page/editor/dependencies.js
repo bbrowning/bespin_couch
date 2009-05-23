@@ -38,13 +38,14 @@ dojo.require("bespin.util.tokenobject");
 dojo.require("bespin.util.util");
 dojo.require("bespin.util.mousewheelevent");
 dojo.require("bespin.util.urlbar");
-dojo.require("bespin.util.webpieces"); 
+dojo.require("bespin.util.webpieces");
 
 dojo.require("bespin.client.filesystem");
 dojo.require("bespin.client.settings");
 dojo.require("bespin.client.status");
 dojo.require("bespin.client.server");
 dojo.require("bespin.client.session");
+dojo.require("bespin.client.couchdb");
 
 dojo.require("th.helpers"); // -- Thunderhead... hooooo
 dojo.require("th.css");
@@ -69,8 +70,8 @@ dojo.require("bespin.editor.piemenu");
 
 dojo.require("bespin.themes.default");
 
-dojo.require("bespin.syntax.base"); 
-dojo.require("bespin.syntax.simple._base"); 
+dojo.require("bespin.syntax.base");
+dojo.require("bespin.syntax.simple._base");
 dojo.require("bespin.syntax.simple.javascript");
 dojo.require("bespin.syntax.simple.css");
 dojo.require("bespin.syntax.simple.html");
