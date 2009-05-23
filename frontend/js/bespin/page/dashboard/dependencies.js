@@ -21,16 +21,16 @@
  *   Bespin Team (bespin@mozilla.com)
  *
  * ***** END LICENSE BLOCK ***** */
- 
+
 dojo.provide("bespin.page.dashboard.dependencies");
 
-dojo.require("dojo.cookie"); 
+dojo.require("dojo.cookie");
 
-dojo.require("bespin.bespin"); 
+dojo.require("bespin.bespin");
 dojo.require("bespin.events");
 
 dojo.require("bespin.util.canvas");
-dojo.require("bespin.util.keys"); 
+dojo.require("bespin.util.keys");
 dojo.require("bespin.util.navigate");
 dojo.require("bespin.util.path");
 dojo.require("bespin.util.tokenobject");
@@ -40,6 +40,7 @@ dojo.require("bespin.client.filesystem");
 dojo.require("bespin.client.settings");
 dojo.require("bespin.client.server");
 dojo.require("bespin.client.session");
+dojo.require("bespin.client.couchdb");
 
 dojo.require("bespin.cmd.commandline");
 dojo.require("bespin.cmd.commands");

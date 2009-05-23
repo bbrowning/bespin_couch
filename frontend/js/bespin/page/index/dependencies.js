@@ -29,6 +29,7 @@ dojo.require("dojo.cookie");
 dojo.require("bespin.bespin");
 dojo.require("bespin.util.navigate");
 dojo.require("bespin.client.server");
+dojo.require("bespin.client.couchdb");
 dojo.require("bespin.user.utils");
 dojo.require("bespin.user.register");
 
