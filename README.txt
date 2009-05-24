@@ -1,5 +1,9 @@
 Running Bespin Couch
 --------------------
+*NOTICE* - It looks like Bespin Couch only works on Safari 4 at the moment. Regular Bespin also works on FF3
+so I'll have to figure out what in the Couch port is causing FF3 to die when drawing to the canvas.
+
+
 Follow directions from Bespin Developer Guide: https://wiki.mozilla.org/Labs/Bespin/DeveloperGuide/Setup
 
 Specifically, bootstrap, bin/activate, and paver dojo create_db. Instead of
