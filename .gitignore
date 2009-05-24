@@ -23,7 +23,7 @@ backend/python/BespinServer.egg-info
 *.db
 *.swp
 *.tmproj
-ext/
+ext/dojo-*
 build/
 man/
 backend/python/testfiles
