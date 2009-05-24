@@ -58,6 +58,25 @@ dojo.extend(bespin.client.Server, {
     // * {{{onSuccess}}} fires after the file is loaded
     loadFile: function(project, path, onSuccess, onFailure) {
         this.couchdb().loadFile(project, path, onSuccess, onFailure);
+    },
+
+    // ** {{{ saveFile(project, path, contents, lastOp) }}}
+    //
+    // Save the given file
+    //
+    // * {{{project}}} is the project to save
+    // * {{{path}}} is the path to save to
+    // * {{{contents}}} fires after the save returns
+    // * {{{lastOp}}} contains the last edit operation
+    saveFile: function(project, path, contents, lastOp) {
+        if (!project || !path) return;
+        this.couchdb().saveFile(project, path, contents);
+    },
+
+    // ** {{{ processMessages() }}}
+    // Starts up message retrieve for this user. Call this only once.
+    processMessages: function() {
+        // TODO: implement this!
     }
 
 });
@@ -76,7 +95,7 @@ dojo.declare("bespin.client.CouchDB", null, {
 
     getAllProjects: function(onSuccess, onFailure) {
         var url = "/_all_dbs";
-        return this.server.request('GET', url, null, {
+        this.server.request('GET', url, null, {
             onSuccess: function(projects) {
                 onSuccess(projects.map(function(project) {
                     return {'name': project + '/'};
@@ -89,7 +108,7 @@ dojo.declare("bespin.client.CouchDB", null, {
 
     getProjectFiles: function(project, onSuccess, onFailure) {
         var url = "/" + project + "/_all_docs";
-        return this.server.request('GET', url, null, {
+        this.server.request('GET', url, null, {
             onSuccess: function(result) {
                 onSuccess(result.rows.map(function(file) {
                     return {'name': file.id};
@@ -102,9 +121,32 @@ dojo.declare("bespin.client.CouchDB", null, {
 
     loadFile: function(project, path, onSuccess, onFailure) {
         var url = "/" + project + "/" + path;
-        return this.server.request('GET', url, null, {
+        this.server.request('GET', url, null, {
             onSuccess: onSuccess,
             onFailure: onFailure
+        });
+    },
+
+    saveFile: function(project, path, contents) {
+        var verb = 'PUT';
+        var url = "/" + project + "/" + path;
+        var couch = this;
+        this.server.request(verb, url, contents, {
+            onSuccess: function() {
+                // After saving the file reload its contents in
+                // the editor so we have the new _rev value
+                couch.loadFile(project, path, function(content) {
+                    bespin.publish("editor:openfile:opensuccess", { file: {
+                        name: path,
+                        content: content,
+                        timestamp: new Date().getTime()
+                    }});
+                });
+            },
+            onFailure: function(request) {
+                // TODO: Do something better than just logging here
+                console.log(request.responseText);
+            }
         });
     }
 
