@@ -136,11 +136,9 @@ dojo.declare("bespin.client.CouchDB", null, {
                 // After saving the file reload its contents in
                 // the editor so we have the new _rev value
                 couch.loadFile(project, path, function(content) {
-                    bespin.publish("editor:openfile:opensuccess", { file: {
-                        name: path,
-                        content: content,
-                        timestamp: new Date().getTime()
-                    }});
+                    var editor = bespin.get('editor');
+                    editor.model.insertDocument(content);
+                    //editor.cursorManager.moveCursor({ row: 0, col: 0 });
                 });
             },
             onFailure: function(request) {
