@@ -1,9 +1,12 @@
-Running Bespin Couch
+Commits To Push Upstream
+------------------------
+* 052340435b01c8900cc024bea953e21faa32b2bc - Fix several relative image resource links
+  * Accidentally included whitespace changes in commit - need to remove before pushing upstream
+* 54039f26425918538392f4f2e74e6c6257249f26 - Allow override of content-type
+
+
+Building Bespin Couch
 --------------------
-*NOTICE* - It looks like Bespin Couch only works on Safari 4 at the moment. Regular Bespin also works on FF3
-so I'll have to figure out what in the Couch port is causing FF3 to die when drawing to the canvas.
-
-
 Follow directions from Bespin Developer Guide: https://wiki.mozilla.org/Labs/Bespin/DeveloperGuide/Setup
 
 Specifically, bootstrap, bin/activate, and paver dojo create_db. Instead of
