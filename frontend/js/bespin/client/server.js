@@ -113,14 +113,19 @@ dojo.declare("bespin.client.Server", null, {
                 dojo.cookie("Domain-Token", token);
             }
             xhr.setRequestHeader("X-Domain-Token", token);
-            xhr.setRequestHeader("Content-Type", 'application/x-www-form-urlencoded');
+            var contentType = 'application/x-www-form-urlencoded';
             if (options.headers) {
                 for (var key in options.headers) {
                     if (options.headers.hasOwnProperty(key)) {
-                        xhr.setRequestHeader(key, options.headers[key]);
+                        if (key === 'Content-Type') {
+                            contentType = options.headers[key];
+                        } else {
+                            xhr.setRequestHeader(key, options.headers[key]);
+                        }
                     }
                 }
             }
+            xhr.setRequestHeader("Content-Type", contentType);
             if (options.serverAsync) {
                 server.asyncStarted();
             }
