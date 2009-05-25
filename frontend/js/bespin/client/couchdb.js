@@ -188,7 +188,23 @@ dojo.extend(bespin.client.Server, {
     // * {{{lastOp}}} contains the last edit operation
     saveFile: function(project, path, contents, lastOp) {
         if (!project || !path) return;
-        this.couchdb().saveFile(project, path, contents);
+
+        // TODO: For now this just grabs the latest rev and saves
+        // this file. We should probably warn the user if someone else
+        // has changed the file? Attachments are revisioned separately though
+        // so maybe not.
+        var server = this;
+        this.userdb().openDoc(project, {}, {
+            onSuccess: function(doc) {
+                var revision = doc._rev;
+                var contentType = doc._attachments[path].content_type;
+                server.userdb().saveAttachment(project, revision, path, contents, {
+                    headers: {
+                        'Content-Type': contentType
+                    }
+                });
+            }
+        });
     },
 
     // ** {{{ processMessages() }}}
