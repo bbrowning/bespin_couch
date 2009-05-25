@@ -160,12 +160,56 @@ dojo.extend(bespin.client.Server, {
     // * {{{onSuccess}}} fires if the list returns something
     // * {{{onFailure}}} fires if there is an error getting a list from the server
     list: function(project, path, onSuccess, onFailure) {
-        var project = project || '';
-        var url = bespin.util.path.combine('/file/list/', project, path || '/');
-        var opts = { onSuccess: onSuccess, evalJSON: true, log: "Listing files in: " + url };
-        if (dojo.isFunction(onFailure)) opts.onFailure = onFailure;
+        project = project || '';
+        if (project === '') {
+            this.userdb().allDocs({
+                onSuccess: function(results) {
+                    var docs = results.rows.map(function(doc) {
+                        return { name: doc.key + "/" };
+                    });
+                    onSuccess(docs);
+                },
+                onFailure: onFailure
+            });
+        } else {
+            var pathParts = project.split('/');
+            project = pathParts.shift();
+            path = pathParts.join('/');
+            this.userdb().openDoc(project, {}, {
+                onSuccess: function(doc) {
+                    var files = [];
+                    for (var file in doc._attachments) {
+                        files.push(file);
+                    }
 
-        this.request('GET', url, null, opts);
+                    // Strip out path prefix, if given
+                    if (path != '') {
+                        files = files.filter(function(file) {
+                            return file.indexOf(path) > -1;
+                        });
+                        files = files.map(function(file) {
+                            return file.replace(path + '/', '');
+                        });
+
+                    }
+
+                    // For files in subdirectories, display just
+                    // the directories
+                    files = files.map(function(file) {
+                        var slashIndex = file.indexOf('/');
+                        if (slashIndex > 0) {
+                            return file.substring(0, slashIndex + 1);
+                        }
+                        return file;
+                    });
+
+                    onSuccess(files.map(function(file) {
+                        return { name: file };
+                    }));
+                },
+                onFailure: onFailure
+            });
+        }
     },
 
     // ** {{{ loadFile(project, path, contents) }}}
@@ -331,6 +375,12 @@ dojo.declare("bespin.client.CouchDB", null, {
                 opts = opts || {};
                 opts.evalJSON = true;
                 this.server.request('GET', this.uri, null, opts);
+            },
+
+            allDocs: function(opts) {
+                opts = opts || {};
+                opts.evalJSON = true;
+                this.server.request('GET', this.uri + '_all_docs', null, opts);
             },
 
             openDoc: function(docId, docOpts, opts) {
