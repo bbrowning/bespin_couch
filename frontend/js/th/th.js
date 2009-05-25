@@ -108,7 +108,7 @@ dojo.declare("th.Resources", null, {
         var links = [];
 
         // add default stylesheet; cheesy path at the moment, need to come up with a better way to approach this TODO
-        links.push({ url: "/js/th/default.css", array: this.userAgentCss, index: 0 });
+        links.push({ url: "js/th/default.css", array: this.userAgentCss, index: 0 });
 
         var s, l = document.getElementsByTagName('link'), counter = 0;
 		for (var i=0; i < l.length; i++){

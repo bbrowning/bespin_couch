@@ -338,7 +338,7 @@ dojo.declare("bespin.cmd.commandline.Interface", null, {
             left:"51px",
             bottom:"0px",
             width:"431px",
-            backgroundImage:"url(http://localhost:8080/images/info_popup.png)"
+            backgroundImage:"url(images/info_popup.png)"
         });
         this.maxInfoHeight = null;
     },

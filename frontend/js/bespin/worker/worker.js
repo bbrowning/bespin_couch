@@ -172,9 +172,9 @@ dojo.declare("bespin.worker.WorkerFacade", null, {
 
         for(var i = 0; i < this.__workerCount__;i++) {
             //console.log("Create worker")
-            var worker = new Worker("/js/bespin/bootstrap_worker.js", source);
+            var worker = new Worker("js/bespin/bootstrap_worker.js", source);
             //console.log("Worker created")
-            
+
             var onmessage = function(event) {
                 var message = event.data
                 if(typeof message == "string") {
@@ -193,7 +193,7 @@ dojo.declare("bespin.worker.WorkerFacade", null, {
                         message = dojo.fromJson(message)
                     }
                 }
-                
+
                 if(message.type == "subscribe") {
                     (function () {
                     var index = message.index
@@ -219,7 +219,7 @@ dojo.declare("bespin.worker.WorkerFacade", null, {
                 }
 
             }
-            
+
             worker.onmessage = onmessage;
             source = "// YOUcannotGuessMe\n" + source
             window.setTimeout(function() {
@@ -318,9 +318,9 @@ dojo.declare("bespin.worker.WorkerFacade", null, {
     // Recursively turn a JS object into its source including functions
     serializeToPortableSource: function(obj) {
         var self   = this;
-        
+
         var isArray = dojo.isArray(obj);
-        
+
         var source = isArray ? "[\n" : "{\n"
 
         for(var prop in obj) {
@@ -346,9 +346,9 @@ dojo.declare("bespin.worker.WorkerFacade", null, {
 
                 // Make sure to encode the property so nobody can insert arbitrary string into our JS
                 prop = '"'+prop.replace(/"/g, '\\"', 'g')+'"';
-                
-                source += isArray ? "" : prop+": ";        
-                
+
+                source += isArray ? "" : prop+": ";
+
                 source += src+",\n"
             })()
         }

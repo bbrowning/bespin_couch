@@ -1,30 +1,30 @@
 //  ***** BEGIN LICENSE BLOCK *****
 // Version: MPL 1.1
-// 
-// The contents of this file are subject to the Mozilla Public License  
+//
+// The contents of this file are subject to the Mozilla Public License
 // Version
-// 1.1 (the "License"); you may not use this file except in compliance  
+// 1.1 (the "License"); you may not use this file except in compliance
 // with
 // the License. You may obtain a copy of the License at
 // http://www.mozilla.org/MPL/
-// 
-// Software distributed under the License is distributed on an "AS IS"  
+//
+// Software distributed under the License is distributed on an "AS IS"
 // basis,
-// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the  
+// WITHOUT WARRANTY OF ANY KIND, either express or implied. See the
 // License
 // for the specific language governing rights and limitations under the
 // License.
-// 
+//
 // The Original Code is Bespin.
-// 
+//
 // The Initial Developer of the Original Code is Mozilla.
 // Portions created by the Initial Developer are Copyright (C) 2009
 // the Initial Developer. All Rights Reserved.
-// 
+//
 // Contributor(s):
-// 
+//
 // ***** END LICENSE BLOCK *****
-// 
+//
 
 dojo.provide("th.components");
 
@@ -173,15 +173,15 @@ dojo.declare("th.components.Scrollbar", th.Container, {
         this.inherited(arguments);
     }
 });
-    
+
 dojo.declare("th.components.Panel", th.Container, {
     paintSelf: function(ctx) {
         this.paintBackground(ctx);
     }
-});  
+});
 
 
-dojo.declare("th.components.ResizeNib", th.Component, { 
+dojo.declare("th.components.ResizeNib", th.Component, {
     constructor: function(parms) {
         this.bus.bind("mousedown", this, this.onmousedown, this);
         this.bus.bind("mouseup", this, this.onmouseup, this);
@@ -212,7 +212,7 @@ dojo.declare("th.components.ResizeNib", th.Component, {
     },
 
     paint: function(ctx) {
-        var d = this.d();  
+        var d = this.d();
 
         if (this.attributes.orientation == th.VERTICAL) {
             var bw = 7;
@@ -267,7 +267,7 @@ dojo.declare("th.components.ResizeNib", th.Component, {
                 cx += 3;
             }
         }
-    }    
+    }
 });
 
 
@@ -286,8 +286,8 @@ dojo.declare("th.components.ResizeNib", th.Component, {
     valid for a particular orientation. I.e., when in HORIZONTAL orientation, getPreferredWidth() should be used and getPreferredHeight()
     ignored.
 
- */ 
-dojo.declare("th.components.Splitter", th.Container, { 
+ */
+dojo.declare("th.components.Splitter", th.Container, {
     constructor: function(parms) {
         this.topNib = new th.components.ResizeNib({ attributes: { orientation: this.attributes.orientation } });
         this.bottomNib = new th.components.ResizeNib({ attributes: { orientation: this.attributes.orientation } });
@@ -380,15 +380,15 @@ dojo.declare("th.components.SplitPanelContainer", th.components.Panel, {
         this.splitter = new th.components.Splitter({ attributes: { orientation: this.attributes.orientation }, label: parms.label });
     },
 
-    getContents: function() {                                                 
-        var childrenWithoutSplitter = dojo.filter(this.children, 
+    getContents: function() {
+        var childrenWithoutSplitter = dojo.filter(this.children,
             dojo.hitch(this, function(item){ return item != this.splitter; })
         );
         if (childrenWithoutSplitter.length > 0) return childrenWithoutSplitter[0];
     },
 
     layout: function() {
-        var childrenWithoutSplitter = dojo.filter(this.children, 
+        var childrenWithoutSplitter = dojo.filter(this.children,
             dojo.hitch(this, function(item){ return item != this.splitter; })
         );
         if (this.children.length == childrenWithoutSplitter.length) this.add(this.splitter);
@@ -398,7 +398,7 @@ dojo.declare("th.components.SplitPanelContainer", th.components.Panel, {
                       this.splitter.getPreferredHeight(this.bounds.width);
         if (this.splitter.shouldLayout()) {
             if (this.attributes.orientation == th.HORIZONTAL) {
-                this.splitter.bounds = { x: this.bounds.width - slength, y: 0, height: this.bounds.height, width: slength }; 
+                this.splitter.bounds = { x: this.bounds.width - slength, y: 0, height: this.bounds.height, width: slength };
             } else {
                 this.splitter.bounds = { x: 0, y: this.bounds.height - slength, height: slength, width: this.bounds.width };
             }
@@ -494,7 +494,7 @@ dojo.declare("th.components.SplitPanel", th.components.Panel, {
 
             if (th.helpers.isPercentage(r.size)) {
                 // percentage lengths are allowed, but will be immediately converted to pixels
-                r.size = Math.floor((parseInt(r.size) / 100) * containerSize); 
+                r.size = Math.floor((parseInt(r.size) / 100) * containerSize);
             }
 
             // enforce a minimum width
@@ -528,17 +528,17 @@ dojo.declare("th.components.SplitPanel", th.components.Panel, {
             }
             startPx += region.size;
 
-        }        
+        }
     }
 });
 
 dojo.declare("th.components.Label", th.components.Panel, {
-    constructor: function(parms) { 
+    constructor: function(parms) {
         if (!parms) parms = {};
         if (!this.border) this.border = new th.borders.EmptyBorder({ insets: { left: 5, right: 5, top: 2, bottom: 2 }});
         this.attributes.text = parms.text || "";
         if (!this.style.font) this.style.font = "12pt Arial";
-        if (!this.style.color) this.style.color = "black"; 
+        if (!this.style.color) this.style.color = "black";
     },
 
     styleContext: function(ctx) {
@@ -546,7 +546,7 @@ dojo.declare("th.components.Label", th.components.Panel, {
 
         ctx.font = this.style.font;
         ctx.fillStyle = this.style.color;
-        
+
         return ctx;
     },
 
@@ -573,8 +573,8 @@ dojo.declare("th.components.Label", th.components.Panel, {
                 this.styles = {};
             }
             this.styles["background-color"] = this.style.backgroundColor;
-            this.inherited(arguments); 
-        } 
+            this.inherited(arguments);
+        }
 
         this.styleContext(ctx);
 
@@ -609,7 +609,7 @@ dojo.declare("th.components.ExpandingInfoPanel", th.components.Panel, {
     },
 
     getMinimumColumnWidth: function() {
-        
+
     },
 
     layout: function() {
@@ -622,7 +622,7 @@ dojo.declare("th.components.ExpandingInfoPanel", th.components.Panel, {
         var height = Math.floor(d.b.h / rows);
         while (height < this.getMinimumRowHeight() && rows > 1) {
             rows--;
-            height = Math.floor(d.b.h / rows); 
+            height = Math.floor(d.b.h / rows);
         }
 
 
@@ -662,13 +662,13 @@ dojo.declare("th.components.List", th.Container, {
         this.items = parms.items || [];
 
         this.scrollTop = 0;
-        
+
         this.allowDeselection = parms.allowDeselection || false;
 
-        this.bus.bind("mousedown", this, this.onmousedown, this);  
-        
+        this.bus.bind("mousedown", this, this.onmousedown, this);
+
         this.renderer = new th.components.Label({ style: { border: new th.borders.EmptyBorder({ size: 3 }) }});
-        
+
         if (parms.topLabel) {
             this.label = parms.topLabel;
             this.label.height = 16;
@@ -679,17 +679,17 @@ dojo.declare("th.components.List", th.Container, {
         var item = this.getItemForPosition({ x: e.componentX, y: e.componentY });
         if (item != this.selected) {
             if (item) {
-                this.selected = item; 
-                this.bus.fire("itemselected", { container: this, item: this.selected }, this); 
+                this.selected = item;
+                this.bus.fire("itemselected", { container: this, item: this.selected }, this);
                 this.repaint();
             } else if(this.allowDeselection)  {
                 delete this.selected;
             }
         }
     },
-    
+
     // be carefull! This does NOT fire the "itemselected" event!!!
-    selectItemByText: function(text) {        
+    selectItemByText: function(text) {
         if (this.items.length == 0)  return false;
         var item = null;
         if (dojo.isObject(this.items[0])) {
@@ -707,27 +707,27 @@ dojo.declare("th.components.List", th.Container, {
 
         if (this.selected != item) {
             this.selected = item;
-            this.repaint();   
+            this.repaint();
         }
 
         return true;
     },
-    
+
     moveSelectionUp: function() {
         if (!this.selected || this.items.length == 0) return;
-        
+
         var x = 0;
         while (this.items[x] != this.selected) {
             x ++;
         }
-        
+
         if (x != 0) {
             this.selected = this.items[x - 1];
-            this.bus.fire("itemselected", { container: this, item: this.selected }, this); 
-            this.repaint();           
+            this.bus.fire("itemselected", { container: this, item: this.selected }, this);
+            this.repaint();
         }
     },
-     
+
     moveSelectionDown: function() {
         if (!this.selected || this.items.length == 0) return;
 
@@ -738,8 +738,8 @@ dojo.declare("th.components.List", th.Container, {
 
         if (x != this.items.length - 1) {
             this.selected = this.items[x + 1];
-            this.bus.fire("itemselected", { container: this, item: this.selected }, this); 
-            this.repaint();           
+            this.bus.fire("itemselected", { container: this, item: this.selected }, this);
+            this.repaint();
         }
     },
 
@@ -761,7 +761,7 @@ dojo.declare("th.components.List", th.Container, {
         this.renderer.item = rctx.item;
         return this.renderer;
     },
-    
+
     getRenderContext: function(item, row) {
         return { item: item, even: row % 2 == 0, selected: this.selected == item };
     },
@@ -786,19 +786,19 @@ dojo.declare("th.components.List", th.Container, {
 
     paint: function(ctx) {
         var d = this.d();
-        
+
         var paintHeight = Math.max(this.getScrollInfo().scrollHeight, d.b.h);
         var scrollInfo = this.getScrollInfo();
 
-        ctx.save();        
-        
+        ctx.save();
+
         if (this.label) {
             var prefHeight = this.label.height;
             this.label.bounds = { y: y, x: d.i.l, height: prefHeight, width: d.b.w };
             this.label.paint(ctx);
             d.i.t = prefHeight;
         }
-        
+
         ctx.translate(0, -this.scrollTop);
 
         try {
@@ -918,13 +918,13 @@ dojo.declare("th.components.HorizontalTree", th.Container, {
             this.showChildren(parent, parent.contents);
         }
     },
-    
+
     replaceList: function(index, contents) {
         this.lists[index].items = contents;
         delete this.lists[index].selected;
         this.render();
     },
-    
+
     removeListsFrom: function(index) {
         for (var x = index; x < this.lists.length; x++)
         {
@@ -932,11 +932,11 @@ dojo.declare("th.components.HorizontalTree", th.Container, {
             this.bus.unbind(this.splitters[x]);
 
             this.remove(this.lists[x]);
-            this.remove(this.splitters[x]);            
+            this.remove(this.splitters[x]);
         }
-        
+
         this.lists = this.lists.slice(0, index);
-        this.splitters = this.splitters.slice(0, index);        
+        this.splitters = this.splitters.slice(0, index);
     },
 
     showChildren: function(newItem, children) {
@@ -970,7 +970,7 @@ dojo.declare("th.components.HorizontalTree", th.Container, {
         this.bus.bind("dragstart", splitter, this.ondragstart, this);
         this.bus.bind("drag", splitter, this.ondrag, this);
         this.bus.bind("dragstop", splitter, this.ondragstop, this);
-        
+
         this.splitters.push(splitter);
         this.add(splitter);
 
@@ -1030,18 +1030,18 @@ dojo.declare("th.components.HorizontalTree", th.Container, {
             } else {
                 result += path[path.length - 1].name + '/';
             }
-            
+
             return result;
         } else {
-            return path;   
+            return path;
         }
     },
 
-    itemSelected: function(e) {                 
+    itemSelected: function(e) {
         var list = e.thComponent;
 
         // add check to ensure that list has an item selected; otherwise, bail
-        if (!list.selected) return; 
+        if (!list.selected) return;
 
         var path = [];
 
@@ -1056,7 +1056,7 @@ dojo.declare("th.components.HorizontalTree", th.Container, {
                 break;
             }
         }
-        
+
         // fire the event AFTER some items maybe got deselected
         this.bus.fire('itemselected', {e: e}, this);
 
@@ -1137,23 +1137,23 @@ dojo.declare("th.components.HorizontalTree", th.Container, {
 dojo.declare("th.components.WindowBar", th.Container, {
     constructor: function(parms) {
         if (!parms) parms = {};
-         
+
         function loadImg(url) {
             var img = new Image();
             img.src = url;
-            return img;            
+            return img;
         }
 
-        this.imgBackgroundRight = loadImg('../images/window_top_right.png');
-        this.imgBackgroundMiddle = loadImg('../images/window_top_middle.png');
-        this.imgBackgroundLeft = loadImg('../images/window_top_left.png');
+        this.imgBackgroundRight = loadImg('images/window_top_right.png');
+        this.imgBackgroundMiddle = loadImg('images/window_top_middle.png');
+        this.imgBackgroundLeft = loadImg('images/window_top_left.png');
 
         this.label = new th.components.Label({ text: parms.title || 'NO TEXT', style: { color: "white", font: "8pt Tahoma" } });
         this.label.getInsets = function(){
             return { top: 4, left: 6};
         }
 
-        this.imgCloseButton = loadImg('../images/icn_close_x.png');
+        this.imgCloseButton = loadImg('images/icn_close_x.png');
         this.closeButton = new th.components.Button({style: { backgroundImage: this.imgCloseButton}});
 
         this.add(this.label, this.closeButton);
@@ -1162,13 +1162,13 @@ dojo.declare("th.components.WindowBar", th.Container, {
             this.parentWindow.toggle();
             delete this.startValue;
         }));
-        
+
         // make the window dragable :)
         this.bus.bind("mousedown", this, this.onmousedown, this);
         this.bus.bind("mouseup", this, this.onmouseup, this);
-        // this event is connected to the window itself, as sometimes the mouse gets outside the WindowBar, event the 
+        // this event is connected to the window itself, as sometimes the mouse gets outside the WindowBar, event the
         // mouse is still pressed. This version is working even then right.
-        dojo.connect(window, "mousemove", dojo.hitch(this, this.onmousemove));  
+        dojo.connect(window, "mousemove", dojo.hitch(this, this.onmousemove));
     },
 
     onmousedown: function(e) {
@@ -1181,7 +1181,7 @@ dojo.declare("th.components.WindowBar", th.Container, {
             var x = s.window.x - (s.mouse.x - e.clientX);
             var y = s.window.y - (s.mouse.y - e.clientY);
             this.parentWindow.move(x, y);
-            
+
             dojo.stopEvent(e);
         }
     },
@@ -1189,27 +1189,27 @@ dojo.declare("th.components.WindowBar", th.Container, {
     onmouseup: function(e) {
         delete this.startValue;
     },
-    
+
     getPreferredHeight: function() {
         return 21;
     },
-    
+
     layout: function() {
         var d = this.d();
         var lh = this.label.getPreferredHeight(d.b.w - 30);
         this.label.bounds = { y: 0, x: 3, height: lh, width: d.b.w - 20 };
         this.closeButton.bounds = { x: d.b.w -14, y: 6 , height: 8, width: 8};
     },
-    
+
     paint: function(ctx) {
         var d = this.d();
-        
+
         ctx.drawImage(this.imgBackgroundLeft, 0, 0);
         ctx.drawImage(this.imgBackgroundMiddle, 3, 0, d.b.w - 6, 21);
         ctx.drawImage(this.imgBackgroundRight, d.b.w - 3, 0);
-        
+
         this.label.paint(ctx);
-        ctx.drawImage(this.imgCloseButton, d.b.w -14 , 6);            
+        ctx.drawImage(this.imgCloseButton, d.b.w -14 , 6);
     }
 });
 
@@ -1219,16 +1219,16 @@ dojo.declare("th.components.WindowPanel", th.components.Panel, {
             console.error('The "userPanel" must be given!');
             return;
         }
-        
+
         this.userPanel = userPanel;
         this.windowBar = new th.components.WindowBar({title: title});
         this.add([this.windowBar, this.userPanel]);
-        
+
         // this is a closed container
         delete this.add;
         delete this.remove;
     },
-    
+
     layout: function() {
         var d = this.d();
         this.width = d.b.w;
@@ -1237,11 +1237,11 @@ dojo.declare("th.components.WindowPanel", th.components.Panel, {
         this.windowBar.bounds = { x: 0, y: 0 , height: y, width: d.b.w };
         this.userPanel.bounds = { x: 1, y: y , height: d.b.h - y - 1, width: d.b.w - 2 };
     },
-    
-    paintSelf: function(ctx) {      
+
+    paintSelf: function(ctx) {
         ctx.lineWidth = 2;
         ctx.strokeStyle = "black";
-        
+
         ctx.strokeStyle = "#2E1F1A";
         ctx.strokeRect(0, 0, this.width, this.height);
     }

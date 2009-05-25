@@ -60,7 +60,7 @@ dojo.declare("bespin.editor.piemenu.Window", null, {
             var slice = this.slices[dir];
             slice.img = dojo.create("img", {
                 id: slice.id,
-                src: "/images/pie/" + slice.id + ".png",
+                src: "images/pie/" + slice.id + ".png",
                 alt: "pie menu border",
                 style: "position:absolute; display:none;"
             }, dojo.body());
@@ -85,7 +85,7 @@ dojo.declare("bespin.editor.piemenu.Window", null, {
         dojo.forEach(borderIds, function(id) {
             this.border[id] = dojo.create("img", {
                 id: "puck_menu" + id,
-                src: "/images/pie/puck_menu_" + id + ".png",
+                src: "images/pie/puck_menu_" + id + ".png",
                 alt: "pie menu",
                 style: "position:absolute; display:none;"
             }, dojo.body());
