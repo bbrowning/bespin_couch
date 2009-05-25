@@ -197,7 +197,14 @@ dojo.extend(bespin.client.Server, {
         this.userdb().openDoc(project, {}, {
             onSuccess: function(doc) {
                 var revision = doc._rev;
-                var contentType = doc._attachments[path].content_type;
+
+                // TODO: New files always get text/plain - need smart library
+                // to figure out the content-type
+                var contentType = "text/plain";
+                if (doc._attachments[path]) {
+                    contentType = doc._attachments[path].content_type;
+                }
+                
                 server.userdb().saveAttachment(project, revision, path, contents, {
                     headers: {
                         'Content-Type': contentType
