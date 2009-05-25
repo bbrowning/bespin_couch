@@ -212,6 +212,22 @@ dojo.extend(bespin.client.Server, {
         }
     },
 
+    // ** {{{ projects(onSuccess) }}}
+    //
+    // Return the list of projects that you have access too
+    //
+    // * {{{onSuccess}}} gets fired with the project list
+    projects: function(onSuccess) {
+        this.userdb().allDocs({
+            onSuccess: function(results) {
+                var docs = results.rows.map(function(doc) {
+                    return { name: doc.key + "/" };
+                });
+                onSuccess(docs);
+            }
+        });
+    },
+
     // ** {{{ loadFile(project, path, contents) }}}
     //
     // Load the given file
