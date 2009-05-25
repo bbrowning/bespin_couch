@@ -218,14 +218,7 @@ dojo.extend(bespin.client.Server, {
     //
     // * {{{onSuccess}}} gets fired with the project list
     projects: function(onSuccess) {
-        this.userdb().allDocs({
-            onSuccess: function(results) {
-                var docs = results.rows.map(function(doc) {
-                    return { name: doc.key + "/" };
-                });
-                onSuccess(docs);
-            }
-        });
+        this.list('', '', onSuccess, function() {});
     },
 
     // ** {{{ loadFile(project, path, contents) }}}
