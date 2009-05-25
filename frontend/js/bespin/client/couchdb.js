@@ -24,8 +24,8 @@ dojo.extend(bespin.client.Server, {
     },
 
     userdb: function() {
-        var user = dojo.cookie('bespin_couch_user');
-        return this.couchdb().db('bespin_user_' + user);
+        var uuid = dojo.cookie('bespin_couch_uuid');
+        return this.couchdb().db('bespin_user_' + uuid);
     },
 
     appDesignDoc: function() {
@@ -48,7 +48,8 @@ dojo.extend(bespin.client.Server, {
     },
 
     setLoginCookie: function(user) {
-        dojo.cookie('bespin_couch_user', user, {
+        var uuid = this.encodePassword(user);
+        dojo.cookie('bespin_couch_uuid', uuid, {
             expires: 1 / 24, // 1 hour
             path: '/'
         });
@@ -65,7 +66,8 @@ dojo.extend(bespin.client.Server, {
     login: function(user, pass, onSuccess, onFailure) {
         var encodedPass = this.encodePassword(pass);
         var server = this;
-        this.couchdb().db('bespin_user_' + user).openDoc('bespin_account', {}, {
+        var uuid = this.encodePassword(user);
+        this.couchdb().db('bespin_user_' + uuid).openDoc('bespin_account', {}, {
             onSuccess: function(doc) {
                 if (doc.password === encodedPass) {
                     server.setLoginCookie(user);
@@ -93,6 +95,7 @@ dojo.extend(bespin.client.Server, {
     // * {{{userconflict}}} fires when the username exists
 	  signup: function(user, pass, email, onSuccess, notloggedin, userconflict) {
         var server = this;
+        var uuid = this.encodePassword(user);
 
         var installUserTemplate = function() {
             server.installTemplate(server.userdb(), 'BespinSettings',
@@ -102,14 +105,15 @@ dojo.extend(bespin.client.Server, {
             server.installTemplate(server.userdb(), 'SampleProject',
                                    'template', installUserTemplate);
         };
-        this.couchdb().db('bespin_user_' + user).create({
+        this.couchdb().db('bespin_user_' + uuid).create({
             onSuccess: function() {
                 server.setLoginCookie(user);
                 server.userdb().saveDoc({
                     _id: 'bespin_account',
-                    username: user,
-                    password: server.encodePassword(pass),
-                    email: email
+                    uuid: uuid,
+                    password: server.encodePassword(pass)
+                    // I have no need to store emails
+                    //email: email
                 }, {
                     onSuccess: installSampleTemplate
                 });
@@ -125,7 +129,7 @@ dojo.extend(bespin.client.Server, {
     //
     // * {{{onSuccess}}} fires after the logout attempt
     logout: function(onSuccess) {
-        dojo.cookie('bespin_couch_user', 'some_value', {
+        dojo.cookie('bespin_couch_uuid', 'some_value', {
             expires: -1,
             path: '/'
         });
@@ -138,8 +142,8 @@ dojo.extend(bespin.client.Server, {
     // * {{{onSuccess}}} fires after the user attempt
     // * {{{notloggedin}}} fires if the user isn't logged in
     currentuser: function(whenLoggedIn, whenNotloggedin) {
-        var user = dojo.cookie('bespin_couch_user');
-        if (user === undefined) {
+        var uuid = dojo.cookie('bespin_couch_uuid');
+        if (uuid === undefined) {
             whenNotloggedin();
         } else {
             this.userdb().openDoc('bespin_account', {}, {
