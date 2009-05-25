@@ -23,6 +23,21 @@ dojo.extend(bespin.client.Server, {
         return this.couchdb().db(appDbName);
     },
 
+    userdb: function() {
+        var user = dojo.cookie('bespin_couch_user');
+        return this.couchdb().db('user_' + user);
+    },
+
+    appDesignDoc: function() {
+        var appdbname = this.appdb().name;
+        var uriParts = document.location.href.split('/');
+        // Remove trailing file (ex: index.html, editor.html)
+        uriParts.pop();
+        // Remove everything up-to and including the database
+        uriParts = uriParts.slice(uriParts.indexOf(appdbname) + 1, uriParts.length);
+        return uriParts.join('/');
+    },
+
     // == USER ==
 
     // ** {{{ encodePassword(pass) }}}
@@ -86,6 +101,8 @@ dojo.extend(bespin.client.Server, {
         }, {
             onSuccess: function() {
                 server.setLoginCookie(user);
+                server.userdb().create();
+                server.installTemplate(server.userdb(), 'SampleProject', 'template');
                 onSuccess();
             },
             on409: userconflict,
@@ -121,6 +138,7 @@ dojo.extend(bespin.client.Server, {
                 onFailure: whenNotloggedin
             });
         }
+        this.installTemplate(this.userdb(), 'SampleProject', 'template');
     },
 
     // ** {{{ list(project, path, onSuccess, onFailure) }}}
@@ -152,7 +170,10 @@ dojo.extend(bespin.client.Server, {
     // * {{{path}}} is the path to load
     // * {{{onSuccess}}} fires after the file is loaded
     loadFile: function(project, path, onSuccess, onFailure) {
-        this.couchdb().loadFile(project, path, onSuccess, onFailure);
+        this.userdb().openAttachment(project, path, {
+            onSuccess: onSuccess,
+            onFailure: onFailure
+        });
     },
 
     // ** {{{ saveFile(project, path, contents, lastOp) }}}
@@ -172,6 +193,26 @@ dojo.extend(bespin.client.Server, {
     // Starts up message retrieve for this user. Call this only once.
     processMessages: function() {
         // TODO: implement this!
+    },
+
+    installTemplate: function(db, project, template) {
+        var file = 'readme.txt';
+        var attachmentKey = 'templates/' + template + '/' + file;
+        var saveOpts = {
+            headers: { 'Content-Type': 'text/plain' }
+        };
+        this.appdb().openAttachment(this.appDesignDoc(), attachmentKey, {
+            onSuccess: function(attachment) {
+                db.openDoc(project, {}, {
+                    onSuccess: function(doc) {
+                        db.saveAttachment(project, doc._rev, file, attachment, saveOpts);
+                    },
+                    on404: function() {
+                        db.saveAttachment(project, null, file, attachment, saveOpts);
+                    }
+                });
+            }
+        });
     }
 
 });
@@ -233,22 +274,23 @@ dojo.declare("bespin.client.CouchDB", null, {
                 }
                 opts.evalJSON = true;
                 this.server.request(method, uri, dojo.toJson(doc), opts);
+            },
+
+            openAttachment: function(docId, attachmentKey, opts) {
+                opts = opts || {};
+                var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey;
+                this.server.request('GET', uri, null, opts);
+            },
+
+            saveAttachment: function(docId, revision, attachmentKey, attachment, opts) {
+                opts = opts || {};
+                var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey;
+                if (revision) {
+                    uri += "?rev=" + revision;
+                }
+                this.server.request('PUT', uri, attachment, opts);
             }
         };
-    },
-
-    createDoc: function(database, doc, onSuccess, onFailure) {
-        var url = "/" + database;
-        var verb = 'POST';
-        if (typeof(doc['_id']) != 'undefined') {
-            url += "/" + doc['_id'];
-            verb = 'PUT';
-        }
-        this.server.request(verb, url, doc, {
-            onSuccess: onSuccess,
-            onFailure: onFailure,
-            evalJSON: true
-        });
     },
 
     getAllProjects: function(onSuccess, onFailure) {
@@ -274,14 +316,6 @@ dojo.declare("bespin.client.CouchDB", null, {
             },
             onFailure: onFailure,
             evalJSON: true
-        });
-    },
-
-    loadFile: function(project, path, onSuccess, onFailure) {
-        var url = "/" + project + "/" + path;
-        this.server.request('GET', url, null, {
-            onSuccess: onSuccess,
-            onFailure: onFailure
         });
     },
 
