@@ -101,9 +101,12 @@ dojo.extend(bespin.client.Server, {
         }, {
             onSuccess: function() {
                 server.setLoginCookie(user);
-                server.userdb().create();
-                server.installTemplate(server.userdb(), 'SampleProject', 'template');
-                onSuccess();
+                server.userdb().create({
+                    onSuccess: function() {
+                        server.installTemplate(server.userdb(), 'SampleProject',
+                                               'template', onSuccess);
+                    }
+                });
             },
             on409: userconflict,
             onFailure: notloggedin
@@ -138,7 +141,6 @@ dojo.extend(bespin.client.Server, {
                 onFailure: whenNotloggedin
             });
         }
-        this.installTemplate(this.userdb(), 'SampleProject', 'template');
     },
 
     // ** {{{ list(project, path, onSuccess, onFailure) }}}
@@ -195,20 +197,68 @@ dojo.extend(bespin.client.Server, {
         // TODO: implement this!
     },
 
-    installTemplate: function(db, project, template) {
-        var file = 'readme.txt';
-        var attachmentKey = 'templates/' + template + '/' + file;
+    // ** {{{ installTemplate(db, project, template) }}}
+    //
+    // Install a template into a project
+    //
+    // * {{{db}}} the destination db
+    // * {{{project}}} the destination project
+    // * {{{template}}} the template to copy files from
+    installTemplate: function(db, project, template, onSuccess) {
+        var server = this;
+        this.appdb().openDoc(this.appDesignDoc(), {}, {
+            onSuccess: function(doc) {
+                var templateFiles = [];
+                for (var attachment in doc._attachments) {
+                    var attachParts = attachment.split('/');
+                    if (attachParts[0] === 'templates' &&
+                        attachParts[1] === template) {
+                        templateFiles.push({
+                            key: attachment,
+                            content_type: doc._attachments[attachment].content_type
+                        });
+                    }
+                }
+                server.installTemplateFiles(db, project, templateFiles, onSuccess);
+            }
+        });
+    },
+
+    // ** {{{ installTemplateFiles(db, project, files) }}}
+    //
+    // Install the list of template files into a project
+    //
+    // * {{{db}}} the destination db
+    // * {{{project}}} the destination project
+    // * {{{files}}} the list of files to copy
+    installTemplateFiles: function(db, project, files, onSuccess) {
+        // if the files list is empty, we're done
+        if (files.length == 0) {
+            onSuccess();
+        }
+
+        var server = this;
+        var file = files.pop();
+        var newFile = file.key.split('/').pop();
         var saveOpts = {
-            headers: { 'Content-Type': 'text/plain' }
+            headers: { 'Content-Type': file.content_type },
+            onSuccess: function() {
+                // Recursively install the other template files
+                // Done recursively instead of iteratively since we're
+                // using async requests and need to install the template
+                // files in serial to update rev parameters
+                server.installTemplateFiles(db, project, files, onSuccess);
+            }
         };
-        this.appdb().openAttachment(this.appDesignDoc(), attachmentKey, {
+        this.appdb().openAttachment(this.appDesignDoc(), file.key, {
             onSuccess: function(attachment) {
                 db.openDoc(project, {}, {
                     onSuccess: function(doc) {
-                        db.saveAttachment(project, doc._rev, file, attachment, saveOpts);
+                        db.saveAttachment(project, doc._rev, newFile, attachment, saveOpts);
                     },
                     on404: function() {
-                        db.saveAttachment(project, null, file, attachment, saveOpts);
+                        // 404 just means this project doesn't exist yet so create it
+                        db.saveAttachment(project, null, newFile, attachment, saveOpts);
                     }
                 });
             }
