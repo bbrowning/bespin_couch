@@ -25,7 +25,7 @@ dojo.extend(bespin.client.Server, {
 
     userdb: function() {
         var user = dojo.cookie('bespin_couch_user');
-        return this.couchdb().db('user_' + user);
+        return this.couchdb().db('bespin_user_' + user);
     },
 
     appDesignDoc: function() {
@@ -65,7 +65,7 @@ dojo.extend(bespin.client.Server, {
     login: function(user, pass, onSuccess, onFailure) {
         var encodedPass = this.encodePassword(pass);
         var server = this;
-        this.appdb().openDoc('user_' + user, {}, {
+        this.couchdb().db('bespin_user_' + user).openDoc('bespin_account', {}, {
             onSuccess: function(doc) {
                 if (doc.password === encodedPass) {
                     server.setLoginCookie(user);
@@ -102,19 +102,19 @@ dojo.extend(bespin.client.Server, {
             server.installTemplate(server.userdb(), 'SampleProject',
                                    'template', installUserTemplate);
         };
-        this.appdb().saveDoc({
-            _id: 'user_' + user,
-            username: user,
-            password: this.encodePassword(pass),
-            email: email
-        }, {
+        this.couchdb().db('bespin_user_' + user).create({
             onSuccess: function() {
                 server.setLoginCookie(user);
-                server.userdb().create({
+                server.userdb().saveDoc({
+                    _id: 'bespin_account',
+                    username: user,
+                    password: server.encodePassword(pass),
+                    email: email
+                }, {
                     onSuccess: installSampleTemplate
                 });
             },
-            on409: userconflict,
+            on412: userconflict,
             onFailure: notloggedin
         });
 	  },
@@ -142,11 +142,30 @@ dojo.extend(bespin.client.Server, {
         if (user === undefined) {
             whenNotloggedin();
         } else {
-            this.appdb().openDoc('user_' + user, {}, {
+            this.userdb().openDoc('bespin_account', {}, {
                 onSuccess: whenLoggedIn,
                 onFailure: whenNotloggedin
             });
         }
+    },
+
+    // == FILES ==
+
+    // ** {{{ list(project, path, onSuccess, onFailure) }}}
+    //
+    // List the path in the given project
+    //
+    // * {{{project}}} is the project to list
+    // * {{{path}}} is the path to list out
+    // * {{{onSuccess}}} fires if the list returns something
+    // * {{{onFailure}}} fires if there is an error getting a list from the server
+    list: function(project, path, onSuccess, onFailure) {
+        var project = project || '';
+        var url = bespin.util.path.combine('/file/list/', project, path || '/');
+        var opts = { onSuccess: onSuccess, evalJSON: true, log: "Listing files in: " + url };
+        if (dojo.isFunction(onFailure)) opts.onFailure = onFailure;
+
+        this.request('GET', url, null, opts);
     },
 
     // ** {{{ loadFile(project, path, contents) }}}
