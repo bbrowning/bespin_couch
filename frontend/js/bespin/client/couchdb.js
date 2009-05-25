@@ -271,6 +271,29 @@ dojo.extend(bespin.client.Server, {
         });
     },
 
+    // ** {{{ removeFile(project, path, onSuccess, onFailure) }}}
+    //
+    // Remove the given file
+    //
+    // * {{{project}}} is the project to remove from
+    // * {{{path}}} is the path to remove
+    // * {{{onSuccess}}} fires if the deletion works
+    // * {{{onFailure}}} fires if the deletion failed
+    removeFile: function(project, path, onSuccess, onFailure) {
+        project = project || '';
+        path = path || '';
+        var server = this;
+        this.userdb().openDoc(project, {}, {
+            onSuccess: function(doc) {
+                var revision = doc._rev;
+                server.userdb().removeAttachment(project, revision, path, {
+                    onSuccess: onSuccess,
+                    onFailure: onFailure
+                });
+            }
+        });
+    },
+
     // ** {{{ processMessages() }}}
     // Starts up message retrieve for this user. Call this only once.
     processMessages: function() {
@@ -415,6 +438,13 @@ dojo.declare("bespin.client.CouchDB", null, {
                 this.server.request(method, uri, dojo.toJson(doc), opts);
             },
 
+            removeDoc: function(doc, opts) {
+                opts = opts || {};
+                opts.evalJSON = true;
+                var uri = this.uri + encodeURIComponent(doc._id) + "?rev=" + doc._rev;
+                this.server.request('DELETE', uri, null, opts);
+            },
+
             openAttachment: function(docId, attachmentKey, opts) {
                 opts = opts || {};
                 var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey;
@@ -428,6 +458,14 @@ dojo.declare("bespin.client.CouchDB", null, {
                     uri += "?rev=" + revision;
                 }
                 this.server.request('PUT', uri, attachment, opts);
+            },
+
+            removeAttachment: function(docId, revision, attachmentKey, opts) {
+                opts = opts || {};
+                opts.evalJSON = true;
+                var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey +
+                    "?rev=" + revision;
+                this.server.request('DELETE', uri, null, opts);
             }
         };
     }
