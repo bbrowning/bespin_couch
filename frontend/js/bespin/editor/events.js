@@ -73,9 +73,9 @@ dojo.declare("bespin.editor.Events", null, {
                 }
             }
         });
-        
+
         // ** {{{ Event: editor:openfile }}} **
-        // 
+        //
         // Observe a request for a file to be opened and start the cycle:
         //
         // * Send event that you are opening up something (openbefore)
@@ -85,14 +85,14 @@ dojo.declare("bespin.editor.Events", null, {
         bespin.subscribe("editor:openfile", function(event) {
             var filename = event.filename;
             var editSession = bespin.get('editSession');
-            var files = bespin.get('files'); 
+            var files = bespin.get('files');
 
             var project  = event.project || editSession.project;
 
             if (editSession.checkSameFile(project, filename)) {
                 return; // short circuit
             }
-            
+
             bespin.publish("editor:openfile:openbefore", { project: project, filename: filename });
 
             files.collaborateOnFile(project, filename, function(file) {
@@ -137,7 +137,7 @@ dojo.declare("bespin.editor.Events", null, {
         });
 
         // ** {{{ Event: editor:forceopenfile }}} **
-        // 
+        //
         // Open an existing file, or create a new one.
         bespin.subscribe("editor:forceopenfile", function(event) {
             var filename = event.filename;
@@ -157,10 +157,10 @@ dojo.declare("bespin.editor.Events", null, {
         });
 
         // ** {{{ Event: editor:newfile }}} **
-        // 
+        //
         // Observe a request for a new file to be created
         bespin.subscribe("editor:newfile", function(event) {
-            var project = event.project || bespin.get('editSession').project; 
+            var project = event.project || bespin.get('editSession').project;
             var newfilename = event.newfilename || "new.txt";
             var content = event.content || " ";
 
@@ -172,11 +172,11 @@ dojo.declare("bespin.editor.Events", null, {
                 }});
 
                 bespin.publish("editor:dirty");
-            });        
+            });
         });
 
         // ** {{{ Event: editor:savefile }}} **
-        // 
+        //
         // Observe a request for a file to be saved and start the cycle:
         //
         // * Send event that you are about to save the file (savebefore)
@@ -187,9 +187,9 @@ dojo.declare("bespin.editor.Events", null, {
         //
         // TODO: Need to actually check saved status and know if the save worked
         bespin.subscribe("editor:savefile", function(event) {
-            var project = event.project || bespin.get('editSession').project; 
+            var project = event.project || bespin.get('editSession').project;
             var filename = event.filename || bespin.get('editSession').path; // default to what you have
-            
+
             bespin.publish("editor:savefile:before", { filename: filename });
 
             // saves the current state of the editor to a cookie
@@ -210,16 +210,16 @@ dojo.declare("bespin.editor.Events", null, {
 
             bespin.publish("editor:titlechange", { filename: filename });
 
-            bespin.publish("message", { msg: 'Saved file: ' + file.name, tag: 'autohide' });
-            
+            bespin.publish("message:hint", { msg: 'Saved file: ' + file.name });
+
             bespin.publish("editor:clean");
         });
 
         // ** {{{ Event: editor:moveandcenter }}} **
-        // 
+        //
         // Observe a request to move the editor to a given location and center it
         bespin.subscribe("editor:moveandcenter", function(event) {
-            var row = event.row; 
+            var row = event.row;
 
             if (!row) return; // short circuit
 
@@ -238,11 +238,11 @@ dojo.declare("bespin.editor.Events", null, {
         // == Shell Events: Header, Chrome, etc ==
         //
         // ** {{{ Event: editor:openfile:opensuccess }}} **
-        // 
+        //
         // When a file is opened successfully change the project and file status area.
         // Then change the window title, and change the URL hash area
         bespin.subscribe("editor:openfile:opensuccess", function(event) {
-            var project = event.project || bespin.get('editSession').project; 
+            var project = event.project || bespin.get('editSession').project;
             var filename = event.file.name;
 
             // reset the state of the editor based on saved cookie
@@ -259,7 +259,7 @@ dojo.declare("bespin.editor.Events", null, {
         });
 
         // ** {{{ Event: editor:urlchange }}} **
-        // 
+        //
         // Observe a urlchange event and then... change the location hash
         bespin.subscribe("url:change", function(event) {
             var hashArguments = dojo.queryToObject(location.hash.substring(1));
@@ -276,50 +276,50 @@ dojo.declare("bespin.editor.Events", null, {
         });
 
         // ** {{{ Event: url:changed }}} **
-        // 
+        //
         // Observe a request for session status
         bespin.subscribe("url:changed", function(event) {
             bespin.publish("editor:openfile", { filename: event.now.get('path') });
         });
 
         // ** {{{ Event: session:status }}} **
-        // 
+        //
         // Observe a request for session status
         bespin.subscribe("session:status", function(event) {
             var editSession = bespin.get('editSession');
             var file = editSession.path || 'a new scratch file';
-            
-            bespin.publish("message", {
+
+            bespin.publish("message:output", {
                 msg: 'Hey ' + editSession.username + ', you are editing ' + file + ' in project ' + editSession.project
             });
         });
 
         // ** {{{ Event: cmdline:focus }}} **
-        // 
+        //
         // If the command line is in focus, unset focus from the editor
         bespin.subscribe("cmdline:focus", function(event) {
             editor.setFocus(false);
         });
 
         // ** {{{ Event: cmdline:blur }}} **
-        // 
+        //
         // If the command line is blurred, take control in the editor
         bespin.subscribe("cmdline:blur", function(event) {
             editor.setFocus(true);
         });
 
         // ** {{{ Event: escape }}} **
-        // 
+        //
         // escape key hit, so clear the find
         bespin.subscribe("ui:escape", function(event) {
             if (editor.ui.searchString) {
                 editor.ui.setSearchString(false);
-                dojo.byId('searchresult').style.display = 'none';                
+                dojo.byId('searchresult').style.display = 'none';
             }
         });
 
         // ** {{{ Event: editor:document:changed }}} **
-        // 
+        //
         // Track whether a file is dirty (hasn't been saved)
         bespin.subscribe("editor:document:changed", function(event) {
             bespin.publish("editor:dirty");

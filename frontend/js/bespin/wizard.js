@@ -51,7 +51,7 @@ bespin.cmd.commands.add({
             for (name in bespin.wizard._wizards) {
                 list += ", " + name;
             }
-            bespin.publish("message", { msg: "Known wizards: " + list.substring(2) });
+            bespin.publish("message:output", { msg: "Known wizards: " + list.substring(2) });
             return;
         }
 
@@ -89,10 +89,10 @@ bespin.subscribe("wizard:show", function(event) {
 
     var wizard = bespin.wizard._wizards[event.type];
     if (!wizard) {
-        bespin.publish("message", { msg: "Unknown wizard: " + event.type });
+        bespin.publish("message:error", { msg: "Unknown wizard: " + event.type });
         return;
     }
-    
+
     // TODO: Get rid of this when we've got the basic devt done
     if (event.showonce) {
         bespin.get('settings').set('hidewelcomescreen', 'true');
@@ -121,5 +121,5 @@ bespin.wizard._onSuccess = function(data, wizard) {
 
 // Warn when the HTML fetch fails
 bespin.wizard._onFailure = function(xhr) {
-    bespin.publish("message", { msg: "Failed to display wizard: " + xhr.responseText });
+    bespin.publish("message:error", { msg: "Failed to display wizard: " + xhr.responseText });
 };
