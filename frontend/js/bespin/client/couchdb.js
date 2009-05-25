@@ -93,6 +93,15 @@ dojo.extend(bespin.client.Server, {
     // * {{{userconflict}}} fires when the username exists
 	  signup: function(user, pass, email, onSuccess, notloggedin, userconflict) {
         var server = this;
+
+        var installUserTemplate = function() {
+            server.installTemplate(server.userdb(), 'BespinSettings',
+                                   'usertemplate', onSuccess);
+        };
+        var installSampleTemplate = function() {
+            server.installTemplate(server.userdb(), 'SampleProject',
+                                   'template', installUserTemplate);
+        };
         this.appdb().saveDoc({
             _id: 'user_' + user,
             username: user,
@@ -102,10 +111,7 @@ dojo.extend(bespin.client.Server, {
             onSuccess: function() {
                 server.setLoginCookie(user);
                 server.userdb().create({
-                    onSuccess: function() {
-                        server.installTemplate(server.userdb(), 'SampleProject',
-                                               'template', onSuccess);
-                    }
+                    onSuccess: installSampleTemplate
                 });
             },
             on409: userconflict,
@@ -241,7 +247,10 @@ dojo.extend(bespin.client.Server, {
 
         var server = this;
         var file = files.pop();
-        var newFile = file.key.split('/').pop();
+        var newFile = file.key.split('/');
+        newFile.shift(); // "templates"
+        newFile.shift(); // template name
+        newFile = newFile.join('/');
         var saveOpts = {
             headers: { 'Content-Type': file.content_type },
             onSuccess: function() {
