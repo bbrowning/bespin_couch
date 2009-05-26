@@ -422,7 +422,7 @@ dojo.declare("bespin.client.CouchDB", null, {
             openDoc: function(docId, docOpts, opts) {
                 docOpts = docOpts || {};
                 opts = opts || {};
-                var uri = this.uri + encodeURIComponent(docId);
+                var uri = this.uri + docId;
                 var encodedOptions = dojo.objectToQuery(docOpts);
                 if (encodedOptions.length > 0) uri += "?" + encodedOptions;
 
@@ -436,7 +436,7 @@ dojo.declare("bespin.client.CouchDB", null, {
                 var uri = this.uri;
                 if (doc._id != undefined) {
                     method = 'PUT';
-                    uri += encodeURIComponent(doc._id);
+                    uri += doc._id;
                 }
                 opts.evalJSON = true;
                 this.server.request(method, uri, dojo.toJson(doc), opts);
@@ -445,19 +445,19 @@ dojo.declare("bespin.client.CouchDB", null, {
             removeDoc: function(doc, opts) {
                 opts = opts || {};
                 opts.evalJSON = true;
-                var uri = this.uri + encodeURIComponent(doc._id) + "?rev=" + doc._rev;
+                var uri = this.uri + doc._id + "?rev=" + doc._rev;
                 this.server.request('DELETE', uri, null, opts);
             },
 
             openAttachment: function(docId, attachmentKey, opts) {
                 opts = opts || {};
-                var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey;
+                var uri = this.uri + docId + "/" + attachmentKey;
                 this.server.request('GET', uri, null, opts);
             },
 
             saveAttachment: function(docId, revision, attachmentKey, attachment, opts) {
                 opts = opts || {};
-                var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey;
+                var uri = this.uri + docId + "/" + attachmentKey;
                 if (revision) {
                     uri += "?rev=" + revision;
                 }
@@ -467,7 +467,7 @@ dojo.declare("bespin.client.CouchDB", null, {
             removeAttachment: function(docId, revision, attachmentKey, opts) {
                 opts = opts || {};
                 opts.evalJSON = true;
-                var uri = this.uri + encodeURIComponent(docId) + "/" + attachmentKey +
+                var uri = this.uri + docId + "/" + attachmentKey +
                     "?rev=" + revision;
                 this.server.request('DELETE', uri, null, opts);
             }
