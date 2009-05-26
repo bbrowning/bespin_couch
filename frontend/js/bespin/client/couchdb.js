@@ -110,7 +110,7 @@ dojo.extend(bespin.client.Server, {
                 server.setLoginCookie(user);
                 server.userdb().saveDoc({
                     _id: 'bespin_account',
-                    uuid: uuid,
+                    username: user,
                     password: server.encodePassword(pass)
                     // I have no need to store emails
                     //email: email
